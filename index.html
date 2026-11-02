@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xvbSEh9Fun/BxR0qBqTKY2Q+/hvzp9MSNqZLIqzwrXY='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-inSSefWrTolUe08ZzxyEMa/iud0CFYKwJOa/9EnEIb8='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -245,6 +245,9 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
 .cls-table input[type=number]{width:58px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
 .cls-table select{padding:3px;border:1px solid var(--line);border-radius:5px;font-size:12px}
 .cls-table td.q{font-weight:800;color:var(--accent)}
+.cls-table .up{color:#2e7d4f;font-weight:700;font-size:11px}
+.cls-table .down{color:var(--neg);font-weight:700;font-size:11px}
+.cls-table label.chief{display:inline-flex;align-items:center;gap:4px}
 .cls-scroll{max-height:360px;overflow:auto;border:1px solid var(--line-2);border-radius:8px}
 .paste-row{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
 .paste-row textarea{flex:1;height:54px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px;resize:vertical}
@@ -1720,7 +1723,8 @@ function renderRatioContent(){
       onclick:()=>{ ui.selSchool = ui.selSchool===d.s.name ? null : d.s.name; renderView(); }});
     prevLv = d.s.level;
     tr.append(h('td',{class:'name', text:d.s.name}));
-    tr.append(h('td',{text: d.q ? d.q.n : ''}));
+    const cc = state.classes[d.s.name] || {};
+    tr.append(h('td',{text: d.q ? d.q.n : '', title: cc.prevN!=null ? `전년도 ${cc.prevN}학급` : null}));
     tr.append(h('td',{class:'strong', text: d.T!=null ? d.T : '-', title: d.q ? d.q.how : '관리자 화면에서 학급수를 입력하세요'}));
     tr.append(h('td',{text:blankIfZero(d.nw)}), h('td',{class:'pc', text:fmtPct(pct(d.nw, d.T))}));
     tr.append(h('td',{text:blankIfZero(d.tmp)}), h('td',{class:'pc', text:fmtPct(pct(d.tmp, d.T))}));
@@ -1786,6 +1790,7 @@ function renderRatioSide(){
         h('span',{text:'진로진학상담 (8학급 이하 +1)'}), h('span',{class:'v',text:q.career}),
         h('span',{text:'보건 (9학급 이상)'}), h('span',{class:'v',text:q.health}),
         h('span',{text:'특수 (입력값)'}), h('span',{class:'v',text:q.special}),
+        h('span',{text:'수석교사'}), h('span',{class:'v',text: (state.classes[d.s.name]||{}).chief ? ((state.classes[d.s.name]||{}).chiefSubj || '있음') : '없음'}),
         h('span',{text:'교사 정원'}), h('span',{class:'v',style:'font-size:14px',text:q.total})),
       h('div',{class:'empty-note', style:'margin-top:6px', text:q.how}));
   }
@@ -2086,7 +2091,7 @@ function renderClassCard(){
     toast(`${ok}개교 반영` + (miss.length ? ` · 못 찾은 이름: ${miss.slice(0,5).join(', ')}${miss.length>5?' …':''}` : ''));
   }})));
   const t = h('table',{class:'cls-table'});
-  t.append(h('tr',null, ...['학교','구분','학급수','계열(고)','수석 TO','특수교사','교사 정원'].map(x=>h('th',{text:x}))));
+  t.append(h('tr',null, ...['학교','구분','학급수(전년도)','학급수(기준년도)','계열(고)','수석교사','특수교사','교사 정원'].map(x=>h('th',{text:x}))));
   for(const s of state.schools){
     if(s.name==='교육청') continue;
     const c = state.classes[s.name] || {};
@@ -2103,14 +2108,19 @@ function renderClassCard(){
       coefIn.addEventListener('change', ()=>save1('coef', coefIn.value==='' ? null : Number(coefIn.value)));
       trackEl = h('span',null, sel, coefIn);
     }
-    const chief = h('input',{type:'checkbox', 'aria-label':`${s.name} 수석교사 TO`}); chief.checked = !!c.chief;
-    chief.addEventListener('change', ()=>save1('chief', chief.checked));
+    const chief = h('input',{type:'checkbox', 'aria-label':`${s.name} 수석교사`}); chief.checked = !!c.chief;
+    chief.addEventListener('change', ()=>{ save1('chief', chief.checked); if(!chief.checked) save1('chiefSubj', ''); });
+    const chiefWrap = h('label',{class:'chief'}, chief, c.chief && c.chiefSubj ? h('span',{class:'note', text:c.chiefSubj}) : null);
     const sp = h('input',{type:'number', min:0, max:30, value: c.special ?? '', 'aria-label':`${s.name} 특수교사`});
     sp.addEventListener('change', ()=>save1('special', sp.value==='' ? 0 : Number(sp.value)));
     const q = quota(s);
     const qCell = h('td',{class:'q', text: q ? q.total : '', title: q ? q.how : ''});
-    t.append(h('tr',null, h('td',{text:s.name}), h('td',{text:s.level}), h('td',null,n), h('td',null,trackEl), h('td',null,chief), h('td',null,sp), qCell));
+    const d = (c.prevN!=null && c.n!=null) ? c.n - c.prevN : null;
+    t.append(h('tr',null, h('td',{text:s.name}), h('td',{text:s.level}),
+      h('td',{class:'note', text: c.prevN!=null ? `${c.prevN}` : ''}, d ? h('span',{class: d>0?'up':'down', text: d>0?` ▲${d}`:` ▼${-d}`}) : null),
+      h('td',null,n), h('td',null,trackEl), h('td',null,chiefWrap), h('td',null,sp), qCell));
   }
+  if(state.meta && state.meta.classSheet) box.prepend(h('div',{class:'msgs', style:'margin:0 0 8px'}, h('div',{class:'m ok', text:`학급수·수석교사는 「${state.meta.fileName}」의 「${state.meta.classSheet}」 시트에서 불러왔습니다. 여기서 고치면 고친 값이 쓰입니다(다시 업로드하면 파일 값으로 바뀜).`})));
   box.append(h('div',{class:'cls-scroll'}, t),
     h('div',{class:'note', style:'margin-top:8px', text:'교사 정원 = 배정기준(8학급 이하는 배정표, 9학급 이상은 중 학급×1.75[9학급 +2, 10학급 +1] / 고 학급×계열 계수, 반올림) + 진로진학상담(8학급 이하 1명) + 보건(9학급 이상) + 특수. 수석교사 TO 0.5는 9학급 이상 산식에 더합니다. 교장·교감 제외.'}));
 }
@@ -2171,6 +2181,43 @@ function parseMatrixSheet(sheet, sheetName){
   }
   return {sheetName, tag: tagM?tagM[1]:null, subjects: subjCols.map(x=>x.name), schools, values, fileTotals, rowTotals, midRange, highRange, msgs};
 }
+/* 「학급수」 시트: 학교명 | 학급수(전년도) | 학급수(기준년도) | 학급수 증감 | 수석교사 유무(교과명 또는 O 표시) */
+function isClassSheet(sheet, name){
+  if(/학급/.test(name)) return true;
+  const hd = (sheet.raw[0]||[]).map(x=>String(x).replace(/\s+/g,''));
+  return hd.some(x=>/^학급수/.test(x)) && !hd.some(x=>/국어|수학|영어/.test(x));
+}
+function chiefValue(v){
+  const s = String(v==null?'':v).trim();
+  if(!s || s==='0' || /^(x|X|무|없음|-|N|n|아니오|FALSE|false)$/.test(s)) return null;
+  return s;   // 교과명·O·유 등 — 비어 있지 않으면 수석교사 있음
+}
+function parseClassSheet(sheet, sheetName){
+  const aoa = sheet.raw; const msgs = [];
+  let hr = -1;
+  for(let r=0;r<Math.min(aoa.length,10);r++){ const row = aoa[r].map(x=>String(x).replace(/\s+/g,'')); if(row.some(x=>/학교/.test(x)) && row.some(x=>/학급수/.test(x))){ hr=r; break; } }
+  if(hr<0) return {error:`「${sheetName}」 시트에서 「학교명」「학급수」 머리글을 찾지 못했습니다.`};
+  const hd = aoa[hr].map(x=>String(x).replace(/\s+/g,''));
+  const col = {
+    school: hd.findIndex(x=>/학교/.test(x)),
+    prev: hd.findIndex(x=>/학급수/.test(x) && /전년/.test(x)),
+    base: hd.findIndex(x=>/학급수/.test(x) && /기준|금년|당해|예정/.test(x)),
+    chief: hd.findIndex(x=>/수석/.test(x))
+  };
+  if(col.base<0){ const cands = hd.map((x,i)=>/학급수/.test(x) && !/증감|전년/.test(x) ? i : -1).filter(i=>i>=0); col.base = cands.length ? cands[0] : col.prev; }
+  if(col.base<0) return {error:`「${sheetName}」 시트에서 학급수 열을 찾지 못했습니다.`};
+  const rows = {}; const totals = {};
+  for(let r=hr+1;r<aoa.length;r++){
+    const name = String(aoa[r][col.school]||'').trim().replace(/\s+/g,'');
+    if(!name) continue;
+    const base = toNum(aoa[r][col.base]), prev = col.prev>=0 ? toNum(aoa[r][col.prev]) : {n:null, ok:true};
+    if(TOTAL_RE.test(name)){ totals[name] = base.n; continue; }
+    if(isBadKey(name)){ msgs.push({t:'warn', m:`「${sheetName}」 사용할 수 없는 학교명 「${name}」은 건너뜁니다.`}); continue; }
+    if(!base.ok || !Number.isInteger(base.n) || base.n<0) msgs.push({t:'warn', m:`「${sheetName}」 ${name}: 학급수 「${aoa[r][col.base]}」을 읽지 못해 0으로 처리`});
+    rows[name] = {base: base.ok ? base.n : 0, prev: prev.n, chief: col.chief>=0 ? chiefValue(aoa[r][col.chief]) : null};
+  }
+  return {sheetName, rows, totals, msgs, hasChiefCol: col.chief>=0, hasPrevCol: col.prev>=0};
+}
 function guessLevel(name, row, midRange, highRange){
   if(midRange && row>=midRange[0] && row<=midRange[1]) return '중';
   if(highRange && row>=highRange[0] && row<=highRange[1]) return '고';
@@ -2188,6 +2235,8 @@ async function handleFile(file){
     const res = { fileName:file.name, msgs:[], sheets:{} };
     const names = book.names.filter(n=>sheetOf(book, n));
     const used = new Set();
+    const classSheetName = names.find(n=>isClassSheet(sheetOf(book, n), n));
+    if(classSheetName) used.add(classSheetName);
     for(const t of PREV_TABS){
       let n = names.find(x => !used.has(x) && t.sheetMatch.test(x));
       if(!n) n = names.find(x => { if(used.has(x)) return false; const a1 = (sheetOf(book, x).raw[0]||[])[0]; return a1!=null && a1!=='' && t.sheetMatch.test(String(a1)); });
@@ -2232,6 +2281,32 @@ async function handleFile(file){
       if(bad.length) res.msgs.push({t:'warn', m:`「${p.sheetName}」 파일의 소계와 다시 계산한 값이 다른 곳 ${bad.length}개: ${bad.slice(0,6).join(', ')}${bad.length>6?' …':''}`});
       else if(Object.keys(p.fileTotals).length) res.msgs.push({t:'ok', m:`「${p.sheetName}」 중계·고계·총계가 파일과 일치합니다.`});
     }
+    // 학급수·수석교사
+    if(classSheetName){
+      const c = parseClassSheet(sheetOf(book, classSheetName), classSheetName);
+      if(c.error) res.msgs.push({t:'warn', m:c.error + ' (학급수는 반영하지 않고 진행)'});
+      else{
+        res.msgs.push(...c.msgs);
+        const known = new Set(schoolList.map(s=>s.name));
+        const resolved = {}; const unknown = [];
+        for(const [raw, v] of Object.entries(c.rows)){
+          const nm = known.has(raw) ? raw : (()=>{ const t = raw.replace(/중학교$/,'중').replace(/고등학교$/,'고').replace(/학교$/,''); const a = SCHOOL_ALIAS[raw] || SCHOOL_ALIAS[t] || t; return known.has(a) ? a : null; })();
+          if(nm) resolved[nm] = v; else unknown.push(raw);
+        }
+        if(unknown.length) res.msgs.push({t:'warn', m:`「${classSheetName}」 학교 목록에 없는 이름 ${unknown.length}개는 건너뜁니다: ${unknown.slice(0,6).join(', ')}${unknown.length>6?' …':''}`});
+        const missing = schoolList.filter(s=>s.name!=='교육청' && !resolved[s.name]).map(s=>s.name);
+        if(missing.length) res.msgs.push({t:'warn', m:`「${classSheetName}」에 학급수가 없는 학교 ${missing.length}개: ${missing.slice(0,6).join(', ')}${missing.length>6?' …':''} (기존 입력값 유지)`});
+        // 소계 대조 (기준년도 학급수)
+        const lvSum = lv => schoolList.filter(s=>s.level===lv && resolved[s.name]).reduce((a,s)=>a+resolved[s.name].base,0);
+        const chk = [['중계',lvSum('중')],['고계',lvSum('고')]];
+        const gk = ['청계','총계','계'].find(k=>k in c.totals); if(gk) chk.push([gk, lvSum('중')+lvSum('고')]);
+        const off = chk.filter(([k,v])=>k in c.totals && Math.abs(c.totals[k]-v)>1e-9).map(([k,v])=>`${k} 파일 ${c.totals[k]} / 계산 ${v}`);
+        if(off.length) res.msgs.push({t:'warn', m:`「${classSheetName}」 소계가 다릅니다: ${off.join(', ')}`});
+        const chiefN = Object.values(resolved).filter(v=>v.chief).length;
+        res.msgs.push({t:'ok', m:`「${classSheetName}」 학급수 ${Object.keys(resolved).length}개교 (기준년도 합계 ${fmtNum(lvSum('중')+lvSum('고'))}학급)` + (c.hasChiefCol ? ` · 수석교사 ${chiefN}개교` : ' · 수석교사 열 없음')});
+        res.classes = {sheetName: classSheetName, rows: resolved, hasChiefCol: c.hasChiefCol};
+      }
+    } else res.msgs.push({t:'info', m:'학급수 시트가 없어 학급수·수석교사는 바꾸지 않습니다 (관리자 5번에서 직접 입력 가능).'});
     res.schools = schoolList; res.subjects = subjList;
     if(!res.msgs.some(m=>m.t==='err') && PREV_TABS.every(t=>res.sheets[t.id])) res.ready = true;
     pending = res;
@@ -2260,6 +2335,13 @@ function renderUploadResult(){
         h('td',{text:`${p.schools.length} (${p.schools.filter(s=>mids.includes(s.name)).length}/${p.schools.filter(s=>highs.includes(s.name)).length})`}),
         h('td',{text:p.subjects.length}), h('td',{text:fmtNum(sumOf(mids))}), h('td',{text:fmtNum(sumOf(highs))}), h('td',{text:fmtNum(sumOf(mids)+sumOf(highs))})));
     }
+    if(pending.classes){
+      const R = pending.classes.rows, lv = l => pending.schools.filter(s=>s.level===l && R[s.name]).reduce((a,s)=>a+R[s.name].base,0);
+      const cnt = l => pending.schools.filter(s=>s.level===l && R[s.name]).length;
+      tbl.append(h('tr',null, h('td',{text:'학급수(기준년도)'}), h('td',{text:pending.classes.sheetName}), h('td',{text:'-'}),
+        h('td',{text:`${Object.keys(R).length} (${cnt('중')}/${cnt('고')})`}), h('td',{text: pending.classes.hasChiefCol ? `수석 ${Object.values(R).filter(v=>v.chief).length}교` : '-'}),
+        h('td',{text:fmtNum(lv('중'))}), h('td',{text:fmtNum(lv('고'))}), h('td',{text:fmtNum(lv('중')+lv('고'))})));
+    }
     box.append(tbl);
   }
   const ms = h('div',{class:'msgs'});
@@ -2275,6 +2357,14 @@ function applyPending(){
   state.schools = pending.schools.concat(keep); state.subjects = pending.subjects; state.data = {};
   for(const t of PREV_TABS){ const p = pending.sheets[t.id]; state.data[t.id] = {values:p.values, tag:p.tag, sheetName:p.sheetName}; }
   state.meta = {fileName: pending.fileName, loadedAt: nowStamp()};
+  if(pending.classes){
+    for(const [nm, v] of Object.entries(pending.classes.rows)){
+      const c = state.classes[nm] = Object.assign({}, state.classes[nm] || {});
+      c.n = v.base; c.prevN = v.prev; c.src = 'file';
+      if(pending.classes.hasChiefCol){ c.chief = !!v.chief; c.chiefSubj = v.chief || ''; }
+    }
+    state.meta.classSheet = pending.classes.sheetName;
+  }
   sortSchools();
   pending = null; $('fileInput').value='';
   ui.selSchool = ui.selSubject = null; ui.subjSel = null;
