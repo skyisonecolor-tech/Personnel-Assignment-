@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6Yz5esC5CKYlJr4UjP1gkKI/ejivQortFwcXg0lQX4U='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-57/EVh5vcg+Kr/98rgHGVIoWVsZ4ch2F5fVNckQDl9k='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -173,6 +173,7 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .pop-tag.gain{background:#e3f1e8;color:#1f5c37}
 .pop-body{overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:5px;min-height:0}
 .pop-row,.pop-add{display:flex;gap:5px;align-items:center}
+.pop input.note-in[type=text]{flex:none;width:86px}
 .pop select{width:100px;padding:4px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff}
 .pop input[type=text]{flex:1;min-width:0;padding:5px 7px;border:1px solid var(--line);border-radius:5px;font-size:13px}
 .pop input[type=text]:focus,.pop select:focus{outline:2px solid var(--accent-line);border-color:var(--accent)}
@@ -580,14 +581,16 @@ const LOSS_COLS = [
   {k:'otherOut', label:'타시도전출·파견',      kind:'names', cats:[['타시도전출','타'],['파견','파']]},
   {k:'leave',    label:'휴직·면직·진로·정퇴',  kind:'names', cats:[['휴직','휴'],['면직','면'],['진로','진'],['정퇴','퇴']]}
 ];
+/* 충원 이름에 붙이는 항목 — 화면에는 첫 글자만: 홍길동(초), 홍길동(수), 기타는 입력한 내용의 첫 글자 */
+const GAIN_CATS = [['','항목 없음'],['초빙','초'],['수석교사','수'],['기타','']];
 const GAIN_COLS = [
-  {k:'gLocal',  label:'관내내신', kind:'names', suggest:'in'},
-  {k:'gExt',    label:'관외전입', kind:'names'},
-  {k:'gReturn', label:'파견복귀', kind:'names'},
-  {k:'gReinst', label:'복직',     kind:'names'},
-  {k:'gOther',  label:'타도전입', kind:'names'},
-  {k:'gHold',   label:'홀드',     kind:'names'},
-  {k:'gNew',    label:'신규',     kind:'names'},
+  {k:'gLocal',  label:'관내내신', kind:'names', suggest:'in', cats:GAIN_CATS, optional:true},
+  {k:'gExt',    label:'관외전입', kind:'names', cats:GAIN_CATS, optional:true},
+  {k:'gReturn', label:'파견복귀', kind:'names', cats:GAIN_CATS, optional:true},
+  {k:'gReinst', label:'복직',     kind:'names', cats:GAIN_CATS, optional:true},
+  {k:'gOther',  label:'타도전입', kind:'names', cats:GAIN_CATS, optional:true},
+  {k:'gHold',   label:'홀드',     kind:'names', cats:GAIN_CATS, optional:true},
+  {k:'gNew',    label:'신규',     kind:'names', cats:GAIN_CATS, optional:true},
   {k:'gTemp',   label:'정원외',   kind:'count'}
 ];
 const ALL_COLS = LOSS_COLS.concat(GAIN_COLS);
@@ -966,7 +969,7 @@ function placeTo(p, sj, target, rank, from){
   unplace(p, sj);
   if(cur===target){ commit(); toast(`${p.name} 배치를 취소했습니다.`); return; }
   const list = getEntries(sj, target, 'gLocal').slice();
-  list.push({id:uid(), name:p.name, cat:'', pid:p.id, from, rank});
+  list.push({id:uid(), name:p.name, cat: p.cho ? '초빙' : '', pid:p.id, from, rank});
   setEntries(sj, target, 'gLocal', list);
   commit();
   toast(cur ? `${p.name}: ${cur} → ${target}(${rank}지망)으로 옮겼습니다.` : `${p.name}을(를) ${target} 충원 「관내내신」에 넣었습니다 (${rank}지망).`);
@@ -976,6 +979,12 @@ function afterStatusChange(p, sj){
   if((p.struck || p.deleted) && unplace(p, sj)) toast(`${p.name}: 미발령·삭제로 바뀌어 충원 배치를 함께 취소했습니다.`);
 }
 function catTag(col, cat){ const c = col.cats && col.cats.find(x=>x[0]===cat); return c ? c[1] : ''; }
+function entryTag(col, en){
+  if(!en.cat) return '';
+  if(en.cat==='기타') return [...String(en.note||'').trim()][0] || '기';
+  return catTag(col, en.cat);
+}
+function entryLabel(en){ return en.cat==='기타' ? (String(en.note||'').trim() || '기타') : (en.cat||''); }
 
 function calc(subj, school){
   const key = subj+'|'+school;
@@ -1159,7 +1168,7 @@ function chipEm(name, tag){ return 0.88*([...name].length + 0.55) + (tag ? 0.88*
 function cellChips(col, cv){
   const out = [];
   if(col.kind==='roster') for(const p of cv.list) out.push({name:p.name, tag:p.cho?'초':''});
-  if(cv.add) for(const en of cv.add) out.push({name:en.name, tag:catTag(col, en.cat)});
+  if(cv.add) for(const en of cv.add) out.push({name:en.name, tag:entryTag(col, en)});
   return out;
 }
 function colWidthEm(col, rows){
@@ -1341,11 +1350,12 @@ function entCell(sj, school, col, cv){
       }
     }
     for(const en of cv.add){
-      const tag = catTag(col, en.cat);
-      names.push(en.name + (tag?`(${tag})`:''));
+      const tag = entryTag(col, en), full = entryLabel(en);
+      names.push(en.name + (full?`(${full})`:''));
       if(shown>=MAX_CHIPS) continue; shown++;
+      const tip = [full, en.from ? `관내내신 · 원소속 ${en.from}${en.rank?` · ${en.rank}지망`:''}` : ''].filter(Boolean).join(' · ');
       td.append(h('span',{class:'chip '+(isLossCol(col)?'loss':'gain')+(col.kind==='roster'?' added':'')+(en.from?' linked':''),
-        title: en.from ? `관내내신 · 원소속 ${en.from}${en.rank?` · ${en.rank}지망`:''}` : null}, maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
+        title: tip || null}, maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
     }
     if(names.length>MAX_CHIPS) td.append(h('span',{class:'more', text:`+${names.length-MAX_CHIPS}`}));
     td.title = `${col.label}${names.length?' — '+(ui.mask?names.length+'명':names.join(', ')):''}\n눌러서 입력·수정`;
@@ -1366,7 +1376,7 @@ function closePop(){ if(!POP) return; POP = null; $('pop').classList.add('hidden
 function afterEdit(focusAdd){ commit({popFocus:focusAdd}); }
 function catSelect(col, value){
   const s = h('select',{'aria-label':'구분'});
-  for(const [c] of col.cats) s.append(h('option',{value:c, text:c}));
+  for(const [c, t] of col.cats) s.append(h('option',{value:c, text: c || t}));
   s.value = value || col.cats[0][0];
   return s;
 }
@@ -1461,8 +1471,14 @@ function renderPop(focusAdd){
       const row = h('div',{class:'pop-row'});
       if(col.cats){
         const s = catSelect(col, en.cat);
-        s.addEventListener('change', ()=>{ en.cat = s.value; afterEdit(false); });
+        s.addEventListener('change', ()=>{ en.cat = s.value; if(en.cat!=='기타') delete en.note; afterEdit(false); });
         row.append(s);
+        if(en.cat==='기타'){
+          const note = h('input',{type:'text', class:'note-in', value:en.note||'', placeholder:'기타 내용', maxlength:20, 'aria-label':'기타 내용'});
+          note.addEventListener('change', ()=>{ en.note = note.value.trim(); afterEdit(false); });
+          note.addEventListener('keydown', e=>{ if(e.key==='Enter') note.blur(); });
+          row.append(note);
+        }
       }
       const inp = h('input',{type:'text', value:en.name, 'aria-label':'성명'});
       inp.addEventListener('change', ()=>{ const v = inp.value.trim(); if(!v){ removeEntry(en.id); return; } en.name = v; afterEdit(false); });
@@ -1473,10 +1489,15 @@ function renderPop(focusAdd){
     // 추가 줄
     const add = h('div',{class:'pop-add'});
     let catSel = null;
+    let noteIn = null;
     if(col.cats){
       catSel = catSelect(col, lastCat[k]);
-      catSel.addEventListener('change', ()=>{ lastCat[k] = catSel.value; });
       add.append(catSel);
+      if(col.optional){
+        noteIn = h('input',{type:'text', class:'note-in'+(catSel.value==='기타'?'':' hidden'), placeholder:'기타 내용', maxlength:20, 'aria-label':'기타 내용'});
+        add.append(noteIn);
+      }
+      catSel.addEventListener('change', ()=>{ lastCat[k] = catSel.value; if(noteIn){ noteIn.classList.toggle('hidden', catSel.value!=='기타'); if(catSel.value==='기타') noteIn.focus(); } });
     }
     const addInput = h('input',{type:'text', placeholder:'성명 (여러 명은 쉼표로)', 'aria-label':'추가할 성명'});
     if(col.suggest==='in'){
@@ -1495,7 +1516,9 @@ function renderPop(focusAdd){
       const names = addInput.value.split(/[,，、\n]+/).map(x=>x.trim()).filter(Boolean);
       if(!names.length){ addInput.focus(); return; }
       const list = getEntries(sj, school, k).slice();
-      for(const n of names) list.push({id:uid(), name:n, cat: catSel ? catSel.value : ''});
+      const cat = catSel ? catSel.value : '', note = (cat==='기타' && noteIn) ? noteIn.value.trim() : '';
+      if(cat==='기타' && !note){ toast('기타 내용을 입력하세요. (화면에는 첫 글자만 표시)'); noteIn.focus(); return; }
+      for(const n of names){ const e = {id:uid(), name:n, cat}; if(note) e.note = note; list.push(e); }
       if(catSel) lastCat[k] = catSel.value;
       setEntries(sj, school, k, list); afterEdit(true);
     };
