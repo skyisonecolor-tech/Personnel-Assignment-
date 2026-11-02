@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-IzIT0nSyWE6QGmPMm1auHHDs9AhrRvcKRHIHw+p8ZgE='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6Yz5esC5CKYlJr4UjP1gkKI/ejivQortFwcXg0lQX4U='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -163,7 +163,7 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .chip.gain{background:#e9f5ee;box-shadow:inset 0 0 0 1px #cfe6d7}
 .chip.added{outline:1px dashed #6f9ec2;outline-offset:-1px}
 /* 입력 팝업 */
-.pop{position:fixed;z-index:60;width:360px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 40px rgba(16,24,40,.22);display:flex;flex-direction:column;max-height:72vh}
+.pop{position:fixed;z-index:60;width:400px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 40px rgba(16,24,40,.22);display:flex;flex-direction:column;max-height:72vh}
 .pop-head{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line-2)}
 .pop-head .t1{font-weight:700;font-size:13.5px}
 .pop-head .t2{font-size:12px;color:var(--muted);margin-top:2px}
@@ -189,6 +189,15 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .pop-person .del{padding:2px 7px;font-size:11.5px;flex:none}
 .pop-person .meta{max-width:130px}
 .pop-person.removed .nm{color:#a3aab3}
+.pop-hopes{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px 21px;align-items:center}
+.pop .hope{border:1px solid var(--accent-line);background:#fff;border-radius:999px;padding:2px 9px;font-size:12px;color:var(--accent);cursor:pointer}
+.pop .hope b{font-weight:700;font-size:.9em;margin-right:1px}
+.pop .hope:hover:not(:disabled){background:var(--accent-weak)}
+.pop .hope.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pop .hope:disabled{opacity:.4;cursor:not-allowed}
+.placed-tag{font-size:11.5px;color:var(--ok);font-weight:600}
+.chip.placed{box-shadow:inset 0 0 0 1px #6fb38a;background:#eef8f1}
+.chip.linked{box-shadow:inset 0 0 0 1px #6fb38a}
 .stepper{display:flex;align-items:center;gap:6px}
 .stepper .btn{width:32px;padding:5px 0}
 .stepper input[type=text]{flex:none;width:70px;text-align:center;font-size:15px;font-weight:700}
@@ -931,6 +940,41 @@ function setCount(sj, sc, k, n){
   if(!state.manual[sj][sc]) state.manual[sj][sc] = {};
   if(n) state.manual[sj][sc][k] = n; else delete state.manual[sj][sc][k];
 }
+/* ── 관내내신자 희망지 배치: 결원(관내내신) → 충원(관내내신) ──
+   충원 항목에 {pid: 명부 사람 id, from: 원소속, rank: 지망}을 붙여 연결. 이름이 같은 직접 입력도 같은 사람으로 봄 */
+function placementMap(sj){
+  const key = 'pl|'+sj; const hit = CALC_CACHE.get(key); if(hit) return hit;
+  const m = new Map();
+  for(const s of state.schools) for(const e of getEntries(sj, s.name, 'gLocal')){
+    if(e.pid) m.set('id:'+e.pid, s.name);
+    m.set('nm:'+e.name, s.name);
+  }
+  CALC_CACHE.set(key, m); return m;
+}
+function placedAt(p, sj){ const m = placementMap(sj); return m.get('id:'+p.id) || m.get('nm:'+p.name) || null; }
+function unplace(p, sj){
+  let n = 0;
+  for(const s of state.schools){
+    const list = getEntries(sj, s.name, 'gLocal');
+    const keep = list.filter(e=>!(e.pid===p.id || e.name===p.name));
+    if(keep.length!==list.length){ n += list.length-keep.length; setEntries(sj, s.name, 'gLocal', keep); }
+  }
+  return n;
+}
+function placeTo(p, sj, target, rank, from){
+  const cur = placedAt(p, sj);
+  unplace(p, sj);
+  if(cur===target){ commit(); toast(`${p.name} 배치를 취소했습니다.`); return; }
+  const list = getEntries(sj, target, 'gLocal').slice();
+  list.push({id:uid(), name:p.name, cat:'', pid:p.id, from, rank});
+  setEntries(sj, target, 'gLocal', list);
+  commit();
+  toast(cur ? `${p.name}: ${cur} → ${target}(${rank}지망)으로 옮겼습니다.` : `${p.name}을(를) ${target} 충원 「관내내신」에 넣었습니다 (${rank}지망).`);
+}
+/* 미발령·삭제로 바뀌면 이미 넣어 둔 충원 배치도 함께 취소 */
+function afterStatusChange(p, sj){
+  if((p.struck || p.deleted) && unplace(p, sj)) toast(`${p.name}: 미발령·삭제로 바뀌어 충원 배치를 함께 취소했습니다.`);
+}
 function catTag(col, cat){ const c = col.cats && col.cats.find(x=>x[0]===cat); return c ? c[1] : ''; }
 
 function calc(subj, school){
@@ -1290,8 +1334,9 @@ function entCell(sj, school, col, cv){
       for(const p of cv.list){
         names.push(p.name + (p.cho?'(초)':'') + (p.struck?' [미발령]':''));
         if(shown>=MAX_CHIPS) continue; shown++;
-        td.append(h('span',{class:'chip'+(col.k==='out'?' out':'')+(p.struck?' struck':''), title:personTip(p, col.k),
-          onclick:e=>{ e.stopPropagation(); p.struck = !p.struck; commit(); }},
+        const at = col.k==='in' ? placedAt(p, sj) : null;
+        td.append(h('span',{class:'chip'+(col.k==='out'?' out':'')+(p.struck?' struck':'')+(at?' placed':''), title:(at?`배치: ${at}\n`:'')+personTip(p, col.k),
+          onclick:e=>{ e.stopPropagation(); p.struck = !p.struck; afterStatusChange(p, sj); commit(); }},
           maskName(p.name), p.cho ? h('span',{class:'t', text:'(초)'}) : null));
       }
     }
@@ -1299,7 +1344,8 @@ function entCell(sj, school, col, cv){
       const tag = catTag(col, en.cat);
       names.push(en.name + (tag?`(${tag})`:''));
       if(shown>=MAX_CHIPS) continue; shown++;
-      td.append(h('span',{class:'chip '+(isLossCol(col)?'loss':'gain')+(col.kind==='roster'?' added':'')}, maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
+      td.append(h('span',{class:'chip '+(isLossCol(col)?'loss':'gain')+(col.kind==='roster'?' added':'')+(en.from?' linked':''),
+        title: en.from ? `관내내신 · 원소속 ${en.from}${en.rank?` · ${en.rank}지망`:''}` : null}, maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
     }
     if(names.length>MAX_CHIPS) td.append(h('span',{class:'more', text:`+${names.length-MAX_CHIPS}`}));
     td.title = `${col.label}${names.length?' — '+(ui.mask?names.length+'명':names.join(', ')):''}\n눌러서 입력·수정`;
@@ -1373,14 +1419,30 @@ function renderPop(focusAdd){
       const list = r[k];
       body.append(h('div',{class:'pop-sec', text:`명부 ${list.length}명 · 체크를 끄면 미발령(줄긋기)`}));
       if(!list.length) body.append(h('div',{class:'pop-empty', text:'이 학교·교과의 명부 인원이 없습니다.'}));
+      if(k==='in' && list.length) body.append(h('div',{class:'pop-empty', text:'지망 학교를 누르면 그 학교 충원 「관내내신」에 이름이 들어갑니다. 다시 누르면 취소, 다른 학교를 누르면 옮겨집니다.'}));
       for(const p of list){
         const cb = h('input',{type:'checkbox', 'aria-label':`${p.name} 발령`}); cb.checked = !p.struck;
-        cb.addEventListener('change', ()=>{ p.struck = !cb.checked; afterEdit(false); });
+        cb.addEventListener('change', ()=>{ p.struck = !cb.checked; afterStatusChange(p, sj); afterEdit(false); });
+        const at = k==='in' ? placedAt(p, sj) : null;
         body.append(h('div',{class:'pop-person'+(p.struck?' struck':''), title:personTip(p, k)},
           h('label',{class:'pp-main'}, cb, h('span',{class:'nm'}, p.name, p.cho ? '(초)' : '')),
-          h('span',{class:'meta', text:[p.kind, p.hopes && p.hopes[0] ? '1희망 '+p.hopes[0] : ''].filter(Boolean).join(' · ')}),
+          h('span',{class:'meta', text: k==='in' ? (p.kind||'') : [p.kind, p.hopes && p.hopes[0] ? '1희망 '+p.hopes[0] : ''].filter(Boolean).join(' · ')}),
           h('button',{type:'button', class:'del', text:'삭제', title:'이 사람을 명부에서 뺍니다 (아래에서 되돌릴 수 있음)',
-            onclick:()=>{ p.deleted = true; afterEdit(false); toast(`${p.name}을(를) 삭제했습니다. 팝업의 「삭제한 사람」에서 되돌릴 수 있습니다.`); }})));
+            onclick:()=>{ p.deleted = true; afterStatusChange(p, sj); afterEdit(false); toast(`${p.name}을(를) 삭제했습니다. 팝업의 「삭제한 사람」에서 되돌릴 수 있습니다.`); }})));
+        if(k==='in'){
+          const row = h('div',{class:'pop-hopes'});
+          const hopes = (p.hopes||[]).map((x,i)=>[x,i+1]).filter(([x])=>x);
+          if(!hopes.length) row.append(h('span',{class:'note', text:'희망지 없음 — 아래 충원 칸에 직접 입력하세요.'}));
+          for(const [raw, rank] of hopes){
+            const tsc = resolveSchool(raw);
+            const why = p.struck ? '미발령 상태입니다 (체크하면 배치 가능)' : !tsc ? `「${raw}」을(를) 학교 목록에서 찾지 못했습니다` : tsc===school ? '현재 소속 학교입니다' : (at===tsc ? '누르면 배치 취소' : `${tsc} 충원 「관내내신」에 넣기`);
+            row.append(h('button',{type:'button', class:'hope'+(at && at===tsc ? ' on':''), title:why,
+              disabled: p.struck || !tsc || tsc===school,
+              onclick:()=>placeTo(p, sj, tsc, rank, school)}, h('b',{text:`${rank}지망`}), ' ', tsc || raw));
+          }
+          if(at && !hopes.some(([raw])=>resolveSchool(raw)===at)) row.append(h('span',{class:'placed-tag', text:`배치: ${at} (직접 입력)`}));
+          body.append(row);
+        }
       }
       const dels = r[k+'Del'] || [];
       if(dels.length){
