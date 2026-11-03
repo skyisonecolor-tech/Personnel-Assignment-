@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-oKhc27k6r9UHrFmb296qIwZYAjEoahH+5Ob6SHluO+w='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vvkYOyGq/t/BMFhGfTW0wIHS4VIAMGpfvjwovPGSMQA='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -335,6 +335,20 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
 .school-chip button.ic:hover{color:var(--accent);border-color:var(--accent-line)}
 .school-chip button.ic.del:hover{color:var(--neg);border-color:#efc1be}
 #askOverlay{z-index:70}
+.snap{width:min(980px,calc(100vw - 40px));height:min(680px,calc(100vh - 40px))}
+.snap-save{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line-2);background:var(--panel-2)}
+.snap-save input{flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px}
+.snap-list{flex:1;min-height:0;overflow:auto;padding:8px 18px}
+.snap-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.snap-table th{position:sticky;top:0;background:var(--panel);text-align:left;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.snap-table td{padding:6px 8px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.snap-table td.nm{font-weight:700}
+.snap-table td.sum{color:var(--ink-2)}
+.snap-table td.muted{color:var(--muted)}
+.snap-table td.acts{white-space:nowrap;text-align:right}
+.snap-table td.acts .btn{margin-left:4px}
+.snap-table .auto{display:inline-block;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px;margin-right:6px}
+.snap-foot{display:flex;align-items:center;gap:8px;padding:10px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
 .overlay.lock{background:#1b2633;z-index:80}
 .sec{border:1px solid var(--line);background:var(--panel);padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
 .sec::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#b7bec7;margin-right:6px;vertical-align:1px}
@@ -361,8 +375,8 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
   <nav id="tabs" class="tabs" aria-label="작업 탭"></nav>
   <div class="top-actions">
     <button id="secBadge" class="sec" type="button">작업 암호 미설정</button>
-    <button id="saveBtn" class="btn" type="button" title="현재 작업 전체를 파일로 저장">저장</button>
-    <button id="loadBtn" class="btn" type="button" title="저장 파일 불러오기">불러오기</button>
+    <button id="saveBtn" class="btn" type="button" title="지금 상태를 저장 목록에 저장 (Ctrl+S)">저장</button>
+    <button id="loadBtn" class="btn" type="button" title="저장 목록에서 원하는 시점 불러오기">불러오기</button>
     <input id="loadInput" type="file" accept=".json,application/json" class="hidden">
     <span class="sep"></span>
     <button id="adminBtn" class="btn" type="button">관리자</button>
@@ -397,6 +411,29 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
     <div class="row">
       <button id="askCancel" class="btn" type="button">취소</button>
       <button id="askOk" class="btn primary" type="button">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="snapOverlay" class="overlay hidden">
+  <div class="dialog snap" role="dialog" aria-modal="true" aria-labelledby="snapTitle">
+    <div class="admin-head">
+      <h3 id="snapTitle">저장 목록</h3>
+      <span id="snapCount" class="note"></span>
+      <span class="spacer"></span>
+      <button id="snapClose" class="btn primary" type="button">닫기</button>
+    </div>
+    <div class="snap-save">
+      <input id="snapName" type="text" maxlength="60" aria-label="저장 이름" placeholder="저장 이름">
+      <button id="snapSaveBtn" class="btn primary" type="button">지금 상태 저장</button>
+    </div>
+    <div id="snapList" class="snap-list"></div>
+    <div class="snap-foot">
+      <span class="note">저장 목록은 <b>이 컴퓨터의 이 브라우저</b>에만 작업 암호로 암호화되어 보관됩니다. 전체 초기화하면 함께 지워집니다.</span>
+      <span class="spacer"></span>
+      <span class="note">다른 컴퓨터로 옮기기:</span>
+      <button id="fileExportBtn" class="btn sm" type="button">파일로 내보내기</button>
+      <button id="fileImportBtn" class="btn sm" type="button">파일에서 가져오기</button>
     </div>
   </div>
 </div>
@@ -451,7 +488,7 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
         </div>
         <div class="card">
           <h4>데이터 초기화</h4>
-          <p class="note" style="margin:0 0 10px">기준일, 전년도 자료, 명부, 미발령 표시, 입력값을 이 브라우저에서 모두 지웁니다. 지우기 전에 [저장]으로 백업 파일을 만들어 두세요.</p>
+          <p class="note" style="margin:0 0 10px">기준일, 전년도 자료, 명부, 미발령 표시, 입력값과 <b>저장 목록</b>을 이 브라우저에서 모두 지웁니다. 지우기 전에 [저장]으로 백업 파일을 만들어 두세요.</p>
           <button id="resetBtn" class="btn danger" type="button">전체 초기화</button>
         </div>
       </div>
@@ -836,12 +873,14 @@ async function changePassword(){
   const nw = await askDialog({title:'새 작업 암호', password:true, confirm2:true, okText:'변경', message:'새 작업 암호(6자 이상)를 두 번 입력하세요. 같은 컴퓨터에 열려 있는 다른 창은 잠깁니다.'});
   if(nw===null) return;
   if(!goodPassword(nw)){ toast('작업 암호는 6자 이상으로 정하세요.'); return; }
-  SESSION = await deriveSession(nw, rand(16), KDF_IT);
-  persist(); toast('작업 암호를 바꿨습니다.');
+  const oldSess = SESSION, newSess = await deriveSession(nw, rand(16), KDF_IT);
+  let n = 0; try{ n = await reencryptSnapshots(oldSess, newSess); }catch(e){ toast('저장 목록을 새 암호로 옮기지 못했습니다: ' + (e && e.message || e)); return; }
+  SESSION = newSess;
+  persist(); toast(`작업 암호를 바꿨습니다.${n ? ` 저장 목록 ${n}개도 새 암호로 바꿨습니다.` : ''}`);
 }
 function isLocked(){ return !$('lockOverlay').classList.contains('hidden'); }
 function showLock(msg){
-  ['adminOverlay','loginOverlay','askOverlay'].forEach(id=>$(id).classList.add('hidden'));
+  ['adminOverlay','loginOverlay','askOverlay','snapOverlay'].forEach(id=>$(id).classList.add('hidden'));
   $('lockMsg').textContent = '이 컴퓨터에 암호화되어 저장된 작업이 있습니다. 작업 암호를 입력하세요.' + (msg ? '\n' + msg : '');
   $('lockErr').textContent = ''; $('lockInput').value = '';
   $('lockOverlay').classList.remove('hidden');
@@ -877,9 +916,10 @@ async function tryUnlock(){
 async function forgetLocal(){
   $('lockOverlay').classList.add('hidden');
   const ok = await askDialog({title:'이 브라우저의 작업 자료 삭제', okText:'삭제',
-    message:'작업 암호 없이는 저장된 자료를 열 수 없습니다.\n이 브라우저에 저장된 작업 자료를 지우고 새로 시작할까요?\n[저장]으로 만든 백업 파일이 있으면 [불러오기]로 복구할 수 있습니다.'});
+    message:'작업 암호 없이는 저장된 자료를 열 수 없습니다.\n이 브라우저에 저장된 작업 자료와 저장 목록을 지우고 새로 시작할까요?\n[파일로 내보내기]로 만든 백업 파일이 있으면 [불러오기 → 파일에서 가져오기]로 복구할 수 있습니다.'});
   if(!ok){ showLock(); return; }
   try{ localStorage.removeItem(STORE_KEY); localStorage.removeItem(LEGACY_KEY); }catch(e){}
+  await idbClear();
   SESSION = null; askedSetup = false;
   replaceState(blankState()); renderAll();
   toast('이 브라우저의 작업 자료를 지웠습니다.');
@@ -919,6 +959,162 @@ function renderSecBadge(){
   else { b.className = 'sec'; b.textContent = '작업 암호 미설정'; b.title = '자료를 넣으면 작업 암호를 정하도록 안내합니다.'; }
 }
 function onSecBadge(){ if(SESSION) lockNow(); else if(canCrypt){ askedSetup = false; setupPassword(); } }
+
+/* ════════════════════ 저장 목록 (이 브라우저 안, 시점별 저장) ════════════════════
+   IndexedDB에 저장 지점을 쌓습니다. 내용은 gzip 압축 후 작업 암호 열쇠(AES-GCM)로 암호화하고,
+   이름·요약도 따로 암호화합니다. 전체 초기화·암호 분실 처리 시 함께 지웁니다. */
+const IDB_NAME = 'hrPlacement', IDB_STORE = 'snapshots', SNAP_MAX = 100;
+function idbOpen(){
+  return new Promise((res, rej)=>{
+    if(!window.indexedDB){ rej(new Error('이 브라우저는 저장 목록(IndexedDB)을 지원하지 않습니다.')); return; }
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = ()=>{ if(!r.result.objectStoreNames.contains(IDB_STORE)) r.result.createObjectStore(IDB_STORE, {keyPath:'id'}); };
+    r.onsuccess = ()=>res(r.result); r.onerror = ()=>rej(r.error);
+  });
+}
+async function idbTx(mode, fn){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(IDB_STORE, mode); const st = tx.objectStore(IDB_STORE);
+    let out; const q = fn(st); if(q) q.onsuccess = ()=>{ out = q.result; };
+    tx.oncomplete = ()=>{ db.close(); res(out); }; tx.onerror = ()=>{ db.close(); rej(tx.error); }; tx.onabort = ()=>{ db.close(); rej(tx.error); };
+  });
+}
+const idbAll = ()=>idbTx('readonly', st=>st.getAll()).then(x=>x||[]);
+const idbPut = rec=>idbTx('readwrite', st=>st.put(rec));
+const idbDel = id=>idbTx('readwrite', st=>st.delete(id));
+const idbClear = ()=>idbTx('readwrite', st=>st.clear()).catch(()=>{});
+async function gzipU8(u8){
+  if(!window.CompressionStream) return {data:u8, z:false};
+  const s = new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'));
+  return {data:new Uint8Array(await new Response(s).arrayBuffer()), z:true};
+}
+async function gunzipU8(u8){
+  const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function aesEnc(key, u8){ const iv = rand(12); return {iv, ct:new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, u8))}; }
+async function aesDec(key, iv, ct){ return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct)); }
+function snapSummary(){
+  let loss = 0, gain = 0;
+  for(const sj of state.subjects) for(const s of state.schools){ const c = calc(sj, s.name); loss += c.loss; gain += c.gain; }
+  const live = k => state.rosters[k] ? state.rosters[k].people.filter(p=>!p.deleted).length : 0;
+  return {schools:state.schools.length, inN:live('in'), outN:live('out'), loss, gain};
+}
+async function encryptRecord(sess, stateObj, meta, id, at){
+  const body = await gzipU8(new TextEncoder().encode(JSON.stringify(stateObj)));
+  const b = await aesEnc(sess.key, body.data);
+  const m = await aesEnc(sess.key, new TextEncoder().encode(JSON.stringify(meta)));
+  return {id, at, salt:b64(sess.salt), z:body.z, iv:b.iv, ct:b.ct, miv:m.iv, mct:m.ct, size:b.ct.byteLength};
+}
+async function decryptMeta(sess, rec){ return clean(JSON.parse(new TextDecoder().decode(await aesDec(sess.key, rec.miv, rec.mct)))); }
+async function decryptBody(sess, rec){
+  let u8 = await aesDec(sess.key, rec.iv, rec.ct);
+  if(rec.z) u8 = await gunzipU8(u8);
+  return clean(JSON.parse(new TextDecoder().decode(u8)));
+}
+async function snapSave(name, auto){
+  if(!SESSION) throw new Error('작업 암호가 필요합니다.');
+  const all = await idbAll();
+  if(all.length >= SNAP_MAX) throw new Error(`저장 목록이 ${SNAP_MAX}개로 가득 찼습니다. 오래된 저장을 지운 뒤 다시 시도하세요.`);
+  const at = Date.now();
+  const meta = {name: String(name||'').slice(0,60) || defaultSnapName(), baseDate:state.baseDate, summary:snapSummary(), auto:!!auto};
+  await idbPut(await encryptRecord(SESSION, state, meta, at.toString(36)+uid(), at));
+}
+function defaultSnapName(){
+  const d = new Date();
+  return `${state.baseDate ? fmtDate(state.baseDate)+' ' : ''}작업 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+/* 작업 암호를 바꿀 때 저장 목록도 새 열쇠로 다시 암호화 */
+async function reencryptSnapshots(oldSess, newSess){
+  let n = 0;
+  for(const rec of await idbAll()){
+    if(rec.salt !== b64(oldSess.salt)) continue;
+    const meta = await decryptMeta(oldSess, rec), body = await decryptBody(oldSess, rec);
+    await idbPut(await encryptRecord(newSess, body, meta, rec.id, rec.at)); n++;
+  }
+  return n;
+}
+function fmtAt(ms){ const d = new Date(ms); return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function fmtSize(b){ return b > 1048576 ? (b/1048576).toFixed(1)+'MB' : Math.max(1, Math.round(b/1024))+'KB'; }
+
+/* ── 저장 목록 창 ── */
+async function openSnapPanel(focusSave){
+  if(!SESSION){
+    if(!canCrypt){ toast('이 환경에서는 저장 목록을 쓸 수 없습니다. [파일로 내보내기]를 이용하세요.'); }
+    else { askedSetup = false; await setupPassword(); if(!SESSION) return; }
+  }
+  $('snapOverlay').classList.remove('hidden');
+  $('snapName').value = defaultSnapName();
+  await renderSnapList();
+  if(focusSave) setTimeout(()=>{ $('snapName').focus(); $('snapName').select(); }, 30);
+}
+function closeSnapPanel(){ $('snapOverlay').classList.add('hidden'); }
+async function onSnapSave(){
+  const btn = $('snapSaveBtn'); btn.disabled = true;
+  try{ await snapSave($('snapName').value.trim(), false); toast('저장 목록에 저장했습니다.'); $('snapName').value = defaultSnapName(); await renderSnapList(); }
+  catch(e){ toast(String(e && e.message || e)); }
+  finally{ btn.disabled = false; }
+}
+async function renderSnapList(){
+  const box = $('snapList'); box.replaceChildren();
+  let recs;
+  try{ recs = await idbAll(); }catch(e){ box.append(h('div',{class:'m err', text:String(e && e.message || e)})); return; }
+  recs.sort((a,b)=>b.at-a.at);
+  const total = recs.reduce((a,r)=>a+(r.size||0),0);
+  $('snapCount').textContent = recs.length ? `${recs.length}개 · ${fmtSize(total)}` : '';
+  if(!recs.length){ box.append(h('div',{class:'empty-note', style:'padding:18px 4px', text:'아직 저장한 시점이 없습니다. 위에서 이름을 정하고 [지금 상태 저장]을 누르세요.'})); return; }
+  const t = h('table',{class:'snap-table'});
+  t.append(h('tr',null, ...['이름','저장 시각','내용','크기',''].map(x=>h('th',{text:x}))));
+  for(const rec of recs){
+    const tr = h('tr');
+    if(!SESSION || rec.salt !== b64(SESSION.salt)){
+      tr.append(h('td',{class:'muted', text:'(다른 작업 암호로 저장된 항목 — 열 수 없음)'}), h('td',{text:fmtAt(rec.at)}), h('td'), h('td',{text:fmtSize(rec.size||0)}),
+        h('td',{class:'acts'}, h('button',{class:'btn sm danger', type:'button', text:'삭제', onclick:()=>onSnapDelete(rec, '이 항목')})));
+      t.append(tr); continue;
+    }
+    let meta;
+    try{ meta = await decryptMeta(SESSION, rec); }catch(e){ meta = {name:'(읽을 수 없음)'}; }
+    const sm = meta.summary || {};
+    tr.append(
+      h('td',{class:'nm'}, meta.auto ? h('span',{class:'auto', text:'자동'}) : null, meta.name || '(이름 없음)'),
+      h('td',{text:fmtAt(rec.at)}),
+      h('td',{class:'sum', text:[meta.baseDate ? fmtDate(meta.baseDate) : '', sm.schools!=null ? `학교 ${sm.schools}` : '', sm.inN||sm.outN ? `명부 관내 ${sm.inN}·관외 ${sm.outN}` : '', sm.loss!=null ? `결원 ${sm.loss} / 충원 ${sm.gain}` : ''].filter(Boolean).join(' · ')}),
+      h('td',{text:fmtSize(rec.size||0)}),
+      h('td',{class:'acts'},
+        h('button',{class:'btn sm primary', type:'button', text:'불러오기', onclick:()=>onSnapRestore(rec, meta)}),
+        h('button',{class:'btn sm', type:'button', text:'이름 변경', onclick:()=>onSnapRename(rec, meta)}),
+        h('button',{class:'btn sm danger', type:'button', text:'삭제', onclick:()=>onSnapDelete(rec, meta.name)})));
+    t.append(tr);
+  }
+  box.append(t);
+}
+async function onSnapRestore(rec, meta){
+  const ok = await askDialog({title:'저장 시점 불러오기', okText:'불러오기',
+    message:`「${meta.name}」(${fmtAt(rec.at)}) 상태로 되돌립니다.\n지금 화면의 작업은 「불러오기 전 자동 저장」으로 목록에 남겨 둡니다.`});
+  if(!ok) return;
+  try{
+    const data = await decryptBody(SESSION, rec);
+    if(!data || !Array.isArray(data.schools)) throw new Error('저장 내용이 올바르지 않습니다.');
+    if(hasData()) await snapSave(`불러오기 전 자동 저장 (→ ${meta.name})`, true).catch(()=>{});
+    replaceState(data); commit();
+    await renderSnapList();
+    toast(`「${meta.name}」 시점으로 되돌렸습니다.`);
+  }catch(e){ toast('불러오지 못했습니다: ' + (e && e.message || e)); }
+}
+async function onSnapRename(rec, meta){
+  const v = await askDialog({title:'이름 변경', text:true, initial:meta.name||'', okText:'변경', message:'저장 지점의 새 이름을 입력하세요.'});
+  if(v===null) return;
+  const name = v.trim().slice(0,60); if(!name) return;
+  const m = await aesEnc(SESSION.key, new TextEncoder().encode(JSON.stringify(Object.assign({}, meta, {name}))));
+  rec.miv = m.iv; rec.mct = m.ct;
+  await idbPut(rec); await renderSnapList();
+}
+async function onSnapDelete(rec, name){
+  const ok = await askDialog({title:'저장 지점 삭제', okText:'삭제', message:`「${name}」(${fmtAt(rec.at)})을 목록에서 지웁니다. 되돌릴 수 없습니다.`});
+  if(!ok) return;
+  await idbDel(rec.id); await renderSnapList(); toast('삭제했습니다.');
+}
 
 /* ════════════════════ 인사발령 PDF (관외 전출 확인) ════════════════════
    PDF는 격리된 작업 공간에서 글자만 뽑고, 관외(청간)전출 명부와 「성명 + 전임지(현 소속)」로 대조합니다.
@@ -2990,6 +3186,7 @@ function onReset(){
   clearTimeout(resetArmed); resetArmed=null; b.classList.remove('armed'); b.textContent='전체 초기화';
   replaceState(blankState());
   try{ localStorage.removeItem(LEGACY_KEY); }catch(e){}   // 암호화 저장분은 빈 상태로 덮어씀(작업 암호 유지)
+  idbClear();                                               // 저장 목록도 모두 삭제
   pending=null; rosterPending.in=rosterPending.out=null; appointPending=null;
   commit(); toast('모든 자료를 지웠습니다.');
 }
@@ -3090,7 +3287,9 @@ async function onLoadFile(file){
       message:`지금 화면의 작업을 저장 파일 내용으로 바꿉니다.\n저장 시각: ${obj.savedAt||'-'}\n기준일: ${obj.baseDate?fmtDate(obj.baseDate):'-'}`});
     if(!ok) return;
   }
+  if(SESSION && hasData()) await snapSave(`파일 가져오기 전 자동 저장 (→ ${file.name})`, true).catch(()=>{});
   replaceState(data); commit();
+  if(!$('snapOverlay').classList.contains('hidden')) renderSnapList();
   toast('불러왔습니다.');
 }
 
@@ -3100,8 +3299,17 @@ $('secBadge').addEventListener('click', onSecBadge);
 $('lockOk').addEventListener('click', tryUnlock);
 $('lockInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
 $('lockForget').addEventListener('click', forgetLocal);
-$('saveBtn').addEventListener('click', onSave);
-$('loadBtn').addEventListener('click', ()=>$('loadInput').click());
+$('saveBtn').addEventListener('click', ()=>openSnapPanel(true));
+$('loadBtn').addEventListener('click', ()=>openSnapPanel(false));
+$('snapClose').addEventListener('click', closeSnapPanel);
+$('snapSaveBtn').addEventListener('click', onSnapSave);
+$('snapName').addEventListener('keydown', e=>{ if(e.key==='Enter') onSnapSave(); });
+$('fileExportBtn').addEventListener('click', onSave);
+$('fileImportBtn').addEventListener('click', ()=>$('loadInput').click());
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey || e.metaKey) && (e.key==='s' || e.key==='S')){ e.preventDefault(); if(!isLocked()) openSnapPanel(true); }
+  if(e.key==='Escape' && !$('snapOverlay').classList.contains('hidden') && $('askOverlay').classList.contains('hidden')) closeSnapPanel();
+});
 $('loadInput').addEventListener('change', e=>onLoadFile(e.target.files[0]));
 $('loginOk').addEventListener('click', tryLogin);
 $('loginCancel').addEventListener('click', closeLogin);
