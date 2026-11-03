@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vvkYOyGq/t/BMFhGfTW0wIHS4VIAMGpfvjwovPGSMQA='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qmGcxgnOetP/inrsSdYLyy3k0VJ8QEdqsf7hpLxWFBs='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -233,6 +233,7 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .check-wrap{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
 .verdict{display:flex;align-items:center;gap:18px;padding:14px 18px;border-radius:10px;font-size:13px;line-height:1.6}
 .verdict .big{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.verdict-act{margin-left:auto;display:flex;gap:8px;align-items:center}
 .verdict.ok{background:#e4f3e8;color:#1f5c37}
 .verdict.bad{background:#fbe3e1;color:#a8291f}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
@@ -300,6 +301,8 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
 .card h4{margin:0 0 10px;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .step{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11.5px;align-items:center;justify-content:center;font-weight:700}
 .card.locked{opacity:.5;pointer-events:none}
+.card.locked .tpl{pointer-events:auto;opacity:1}
+.card h4 .tpl{margin-left:auto;display:inline-flex;gap:4px}
 .date-row{display:flex;align-items:center;gap:6px}
 .date-row button{white-space:nowrap}
 .date-row input{width:54px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;text-align:right}
@@ -494,19 +497,20 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
       </div>
       <div class="admin-col">
         <div class="card" id="cardUpload">
-          <h4><span class="step">2</span>전년도 자료 업로드 <span class="note">전년도 증감 현황 · 전년도 기간제 현황 (2개 시트, 한 파일)</span></h4>
+          <h4><span class="step">2</span>전년도 자료 업로드 <span class="note">전년도 증감 · 전년도 기간제 · 학급수 (한 파일)</span>
+            <span class="tpl"><button class="btn sm" type="button" id="tplPrev">빈 양식 받기</button><button class="btn sm" type="button" id="tplPrevVal" title="지금 웹앱의 값을 채운 파일 (밖에서 고쳐 다시 올릴 때)">현재 값으로 받기</button></span></h4>
           <label class="drop" for="fileInput" data-drop="prev"><b>엑셀 파일 선택</b> 또는 여기로 끌어다 놓기 <span class="note">· .xlsx · 한셀 저장 파일 가능</span></label>
           <input id="fileInput" type="file" accept=".xlsx,.xlsm,.xls" class="hidden">
           <div id="uploadResult"></div>
         </div>
         <div class="card" id="cardRosterIn">
-          <h4><span class="step">3</span>관내내신 명부 <span class="note">전보내신자 현황 목록(관내)</span></h4>
+          <h4><span class="step">3</span>관내내신 명부 <span class="note">전보내신자 현황 목록(관내)</span><span class="tpl"><button class="btn sm" type="button" id="tplIn">양식 받기</button></span></h4>
           <label class="drop" for="rosterInInput" data-drop="in"><b>엑셀 파일 선택</b> 또는 여기로 끌어다 놓기</label>
           <input id="rosterInInput" type="file" accept=".xlsx,.xlsm,.xls" class="hidden">
           <div id="rosterInResult"></div>
         </div>
         <div class="card" id="cardRosterOut">
-          <h4><span class="step">4</span>관외(청간)전출 명부 <span class="note">전보내신자 현황 목록(관외)</span></h4>
+          <h4><span class="step">4</span>관외(청간)전출 명부 <span class="note">전보내신자 현황 목록(관외)</span><span class="tpl"><button class="btn sm" type="button" id="tplOut">양식 받기</button></span></h4>
           <label class="drop" for="rosterOutInput" data-drop="out"><b>엑셀 파일 선택</b> 또는 여기로 끌어다 놓기</label>
           <input id="rosterOutInput" type="file" accept=".xlsx,.xlsm,.xls" class="hidden">
           <div id="rosterOutResult"></div>
@@ -516,10 +520,10 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
           <label class="drop" for="appointInput" data-drop="appoint"><b>PDF 파일 선택</b> 또는 여기로 끌어다 놓기</label>
           <input id="appointInput" type="file" accept=".pdf,application/pdf" class="hidden">
           <div id="appointResult"></div>
-          <p class="note" style="margin:8px 0 0">명단에 없는 관외 내신자는 자동으로 미발령(줄긋기), 발령된 사람은 발령 교육지원청을 표시합니다. PDF의 도 전체 명단은 저장하지 않습니다.</p>
+          <p class="note" style="margin:8px 0 0">양식은 없습니다 — 도교육청 인사발령(중등교사) PDF를 그대로 올립니다. 명단에 없는 관외 내신자는 자동으로 미발령(줄긋기), 발령된 사람은 발령 교육지원청을 표시합니다. PDF의 도 전체 명단은 저장하지 않습니다.</p>
         </div>
         <div class="card" id="cardClasses">
-          <h4><span class="step">5</span>학급수 · 교사 정원 <span class="note">신규+기간제 비 계산용 · 교원정원 배정기준(교장·교감 제외)</span></h4>
+          <h4><span class="step">5</span>학급수 · 교사 정원 <span class="note">신규+기간제 비 계산용 · 교원정원 배정기준(교장·교감 제외) · 학급수 양식은 2번 양식의 「학급수」 시트</span></h4>
           <div id="classBox"></div>
         </div>
         <p class="note" style="margin:0">명부에서는 성명·교과·소속 학교·내신구분·대상자구분·TO감·전보상태·희망지(1~3)만 가져옵니다. 개인번호·생년월일·성별·주소·근무성적·전보비고 원문은 저장하지 않으며, 관내내신 명부의 전보비고에 「초빙예정」이 있으면 이름 뒤에 (초) 표시만 남깁니다.</p>
@@ -561,7 +565,23 @@ function sanitizeHancell(u8){
   });
   return XLSX.CFB.write(z, {fileType:'zip', type:'array'});
 }
+/* 엑셀 만들기: {op:'write', sheets:[{name, aoa, cols}]} → xlsx 바이트 */
+function writeBook(spec){
+  const wb = XLSX.utils.book_new();
+  for(const sh of spec.sheets){
+    const ws = XLSX.utils.aoa_to_sheet(sh.aoa);
+    if(sh.cols) ws['!cols'] = sh.cols.map(function(w){ return {wch:w}; });
+    if(sh.merges) ws['!merges'] = sh.merges.map(function(m){ return XLSX.utils.decode_range(m); });
+    XLSX.utils.book_append_sheet(wb, ws, sh.name);
+  }
+  return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true});
+}
 self.onmessage = function(e){
+  if(e.data && e.data.op==='write'){
+    try{ const out = writeBook(e.data); const buf = out instanceof ArrayBuffer ? out : new Uint8Array(out).buffer; self.postMessage({ok:true, buf:buf}, [buf]); }
+    catch(err){ self.postMessage({ok:false, error:String(err && err.message || err)}); }
+    return;
+  }
   try{
     const u8 = new Uint8Array(e.data);
     let wb = XLSX.read(u8, {type:'array', cellFormula:true});
@@ -959,6 +979,213 @@ function renderSecBadge(){
   else { b.className = 'sec'; b.textContent = '작업 암호 미설정'; b.title = '자료를 넣으면 작업 암호를 정하도록 안내합니다.'; }
 }
 function onSecBadge(){ if(SESSION) lockNow(); else if(canCrypt){ askedSetup = false; setupPassword(); } }
+
+/* ════════════════════ 엑셀 만들기 (양식 · 작업 결과) ════════════════════ */
+function writeXlsx(sheets){
+  return new Promise((resolve, reject)=>{
+    const src = $('xlsxLib').textContent + '\n;\n' + $('xlsxWorker').textContent;
+    const url = URL.createObjectURL(new Blob([src], {type:'text/javascript'}));
+    let w;
+    try{ w = new Worker(url); }catch(e){ URL.revokeObjectURL(url); reject(new Error('엑셀 만들기 공간을 만들 수 없습니다.')); return; }
+    const done = ()=>{ clearTimeout(timer); w.terminate(); URL.revokeObjectURL(url); };
+    const timer = setTimeout(()=>{ done(); reject(new Error('엑셀을 만드는 데 너무 오래 걸려 중단했습니다.')); }, 60000);
+    w.onmessage = e=>{ done(); const d = e.data; if(d && d.ok) resolve(new Uint8Array(d.buf)); else reject(new Error((d && d.error) || '알 수 없는 오류')); };
+    w.onerror = e=>{ e.preventDefault(); done(); reject(new Error(e.message || '엑셀을 만들지 못했습니다.')); };
+    w.postMessage({op:'write', sheets});
+  });
+}
+function downloadBytes(u8, fname, mime){
+  const blob = new Blob([u8], {type: mime || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = h('a',{href:URL.createObjectURL(blob), download:fname});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+function stampNow(){ const d = new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`; }
+const XL_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const colL = c => encodeCell(0, c).replace(/\d+$/,'');
+const F = (f, v)=>({t:'n', f, v: v==null ? 0 : v});
+const safeSheet = n => String(n).replace(/[\[\]:*?\/\\]/g,'·').slice(0,31);
+
+/* 양식 기본 학교·교과 (자료를 올리기 전에도 양식을 받을 수 있게) */
+const DEFAULT_SCHOOLS = {중:['군서미래국제','군자중','논곡중','대흥중','산현중','배곧중','배곧라라중','배곧해솔중','서해중','소래중','송운중','시화나래중','시화중','시흥가온중','시흥능곡중','시흥매화중','시흥은행중','시흥중','신천중','연성중','월곶중','은계중','응곡중','장곡중','정왕중','조남중','함현중'],
+  고:['경스고','군서고','군디과고','목감고','배곧고','서해고','소래고','시흥고','시흥능곡고','시흥매화고','신천고','은행고','장곡고','정왕고','함현고','교육청']};
+const DEFAULT_SUBJECTS = ['도덕윤리','국어','수학','일반사회','역사','지리','통합사회','물리','화학','생물','지구과학','통합과학','체육','음악','미술','한문','영어','일어','중어','스페인어','러시아어','기술','가정','환경','정컴','전기','전기자통','기계','기계금속','화공','전자','화공섬유','디자인공예','의상','미용','진로진학상담','전문상담','특수','보건','사서','영양'];
+function listsForTemplate(){
+  if(state.schools.length && state.subjects.length){
+    return {mid: state.schools.filter(s=>s.level==='중').map(s=>s.name), high: state.schools.filter(s=>s.level!=='중').map(s=>s.name), subs: state.subjects.slice()};
+  }
+  return {mid: DEFAULT_SCHOOLS.중.slice(), high: DEFAULT_SCHOOLS.고.slice(), subs: DEFAULT_SUBJECTS.slice()};
+}
+/* 학교×교과 표 (양식·결과 공용). get(school, subj) 가 없으면 빈 양식 */
+function matrixAoa(corner, totalLabel, grandLabel, L, get){
+  const n = L.subs.length, last = colL(n);   // 교과는 B..(n), 합계는 n+1 열
+  const aoa = [[corner, ...L.subs, totalLabel]];
+  const rowOf = {};
+  const all = L.mid.concat(L.high);
+  all.forEach((sc, i)=>{
+    const r = i + 2; rowOf[sc] = r;
+    const vals = L.subs.map(sj=>{ const v = get ? get(sc, sj) : 0; return v ? v : ''; });
+    const tot = vals.reduce((a,v)=>a+(+v||0),0);
+    aoa.push([sc, ...vals, F(`SUM(B${r}:${last}${r})`, tot)]);
+  });
+  const m1 = 2, m2 = 1 + L.mid.length, h1 = m2 + 1, h2 = 1 + all.length;
+  const colSum = (c, list)=> list.reduce((a,sc)=>{ const v = aoa[rowOf[sc]-1][c]; return a + (typeof v==='number' ? v : (v && v.v) || 0); },0);
+  const sumRow = (label, a, b, list)=>[label, ...L.subs.map((_,i)=>{ const c = colL(i+1); return F(`SUM(${c}${a}:${c}${b})`, colSum(i+1, list)); }), F(`SUM(${colL(n+1)}${a}:${colL(n+1)}${b})`, colSum(n+1, list))];
+  aoa.push(sumRow('중계', m1, m2, L.mid));
+  aoa.push(sumRow('고계', h1, h2, L.high));
+  const gr = aoa.length + 1;
+  aoa.push([grandLabel, ...L.subs.map((_,i)=>{ const c = colL(i+1); return F(`${c}${gr-2}+${c}${gr-1}`, colSum(i+1, all)); }), F(`${colL(n+1)}${gr-2}+${colL(n+1)}${gr-1}`, colSum(n+1, all))]);
+  return {aoa, cols:[12, ...L.subs.map(()=>6), 8]};
+}
+function classAoa(L, withValues){
+  const aoa = [['학교명','학급수\n(전년도)','학급수\n(기준년도)','학급수 증감','수석교사 유무\n(교과명 또는 O)']];
+  const all = L.mid.concat(L.high);
+  all.forEach((sc, i)=>{
+    const r = i + 2, c = withValues ? (state.classes[sc] || {}) : {};
+    const pv = c.prevN ?? '', bv = c.n ?? '';
+    aoa.push([sc, pv, bv, F(`C${r}-B${r}`, (+bv||0)-(+pv||0)), withValues && c.chief ? (c.chiefSubj || 'O') : '']);
+  });
+  const m2 = 1 + L.mid.length, h2 = 1 + all.length;
+  const cs = (c, a1, b1)=>{ let t=0; for(let r=a1;r<=b1;r++){ const v = aoa[r-1][c]; t += typeof v==='number' ? v : (v && v.v) || 0; } return t; };
+  const mid = [1,2,3].map(c=>cs(c,2,m2)), high = [1,2,3].map(c=>cs(c,m2+1,h2));
+  aoa.push(['중계', F(`SUM(B2:B${m2})`, mid[0]), F(`SUM(C2:C${m2})`, mid[1]), F(`SUM(D2:D${m2})`, mid[2]), '']);
+  aoa.push(['고계', F(`SUM(B${m2+1}:B${h2})`, high[0]), F(`SUM(C${m2+1}:C${h2})`, high[1]), F(`SUM(D${m2+1}:D${h2})`, high[2]), '']);
+  const g = aoa.length + 1;
+  aoa.push(['청계', F(`B${g-2}+B${g-1}`, mid[0]+high[0]), F(`C${g-2}+C${g-1}`, mid[1]+high[1]), F(`D${g-2}+D${g-1}`, mid[2]+high[2]), '']);
+  return {aoa, cols:[14,10,10,10,16]};
+}
+async function downloadPrevTemplate(withValues){
+  const L = listsForTemplate();
+  const gv = id => withValues && state.data[id] ? (sc,sj)=>val(state.data[id], sc, sj) : null;
+  const a = matrixAoa('증감내역(전년도)', '증감 합계', '증감계', L, gv('prevChange'));
+  const b = matrixAoa('기간제(전년도)', '합계', '총계', L, gv('prevTemp'));
+  const c = classAoa(L, withValues);
+  const guide = [['작성 안내'],
+    ['1. 「전년도 증감 현황」「전년도 기간제 현황」: 학교(행) × 교과(열)에 숫자를 넣습니다. 증감의 감소는 -1처럼 음수로 씁니다.'],
+    ['2. 「학급수」: 학급수(전년도)·학급수(기준년도)를 넣고, 수석교사가 있으면 교과명(또는 O)을 씁니다. 교사 정원은 기준년도 학급수로 계산합니다.'],
+    ['3. 중계·고계·총계 줄과 합계 열은 수식이라 그대로 두면 됩니다. 학교 순서는 중학교 → 고등학교 → 교육청을 지켜 주세요(중계·고계 범위로 중/고를 구분).'],
+    ['4. 학교를 더하거나 빼려면 같은 구역(중/고) 안에서 행을 넣고 지운 뒤, 중계·고계 수식 범위를 맞춰 주세요. 시트 이름은 바꾸지 않는 것이 좋습니다.'],
+    ['5. 다 쓰면 웹앱 관리자 → 2. 전년도 자료 업로드에 이 파일을 올립니다.']];
+  const sheets = [
+    {name:'전년도 증감 현황', ...a}, {name:'전년도 기간제 현황', ...b}, {name:'학급수', ...c}, {name:'작성 안내', aoa:guide, cols:[110]}];
+  try{
+    const u8 = await writeXlsx(sheets);
+    downloadBytes(u8, withValues ? `HR-placement_prev-data_${stampNow()}.xlsx` : 'HR-placement_template_prev-data.xlsx', XL_MIME);
+    toast(withValues ? '현재 값으로 채운 전년도 자료 파일을 받았습니다.' : '전년도 자료 양식을 받았습니다.');
+  }catch(e){ toast('양식을 만들지 못했습니다: ' + (e && e.message || e)); }
+}
+async function downloadRosterTemplate(kind){
+  const head = ['순번','교과','내신구분','대상자구분','TO감','소속기관','기관','성명','1희망지','2희망지','3희망지','전보상태','전보비고내용'];
+  const guide = [['작성 안내 — ' + (kind==='in' ? '관내내신 명부' : '관외(청간)전출 명부')],
+    ['· 교육청 업무관리시스템에서 내려받은 「전보내신자 현황 목록」 엑셀은 고치지 않고 그대로 올려도 됩니다. 이 양식은 직접 만들 때만 씁니다.'],
+    ['· 필수 열: 교과, 기관(현 소속 학교 정식 이름, 예: 배곧고등학교), 성명. 열 이름으로 찾으므로 순서는 바뀌어도 됩니다.'],
+    [kind==='in' ? '· 1~3희망지에는 학교 정식 이름(예: 시흥고등학교)을 씁니다. 배치 탭에서 지망 학교 버튼으로 바로 배치할 수 있습니다.' : '· 1~3희망지에는 교육지원청 이름(예: 경기도부천교육지원청)을 씁니다.'],
+    ['· 전보상태가 「제출」이 아니면(반려 등) 미발령으로 표시됩니다. 전보비고내용에 「초빙예정」이 있으면 관내내신자 이름 뒤에 (초)가 붙습니다.'],
+    ['· 개인번호·생년월일·주소 같은 열은 넣지 않아도 되며, 넣어도 웹앱은 저장하지 않습니다.']];
+  try{
+    const u8 = await writeXlsx([{name:'전보내신자현황목록', aoa:[head], cols:[6,12,14,12,8,20,22,10,22,22,22,10,30]}, {name:'작성 안내', aoa:guide, cols:[110]}]);
+    downloadBytes(u8, `HR-placement_template_roster-${kind}.xlsx`, XL_MIME);
+    toast('명부 양식을 받았습니다.');
+  }catch(e){ toast('양식을 만들지 못했습니다: ' + (e && e.message || e)); }
+}
+
+/* ── 작업 결과 전체 (점검 이상없음일 때) ── */
+function namesText(col, cv){
+  const out = [];
+  if(col.kind==='roster') for(const p of cv.list) if(!p.struck) out.push(p.name + (p.cho ? '(초)' : ''));
+  if(cv.add) for(const en of cv.add){ const t = entryTag(col, en); out.push(en.name + (t ? `(${t})` : '')); }
+  return out.join(', ');
+}
+function buildResultSheets(){
+  const L = listsForTemplate(), y2 = prevY2(), by = baseY2();
+  const sheets = [];
+  // 1) 전체 배치 현황
+  const head = ['교과','학교','증원',`기간제(${y2})`];
+  for(const c of LOSS_COLS){ head.push(c.label+' 인원'); head.push(c.label+' 명단'); }
+  head.push('결원 계');
+  for(const c of GAIN_COLS){ if(c.kind==='count'){ head.push('정원외(강사)'); head.push('그중 미배치'); } else { head.push(c.label+' 인원'); head.push(c.label+' 명단'); } }
+  head.push('충원 계','차이(결원−충원)');
+  const aoa = [head];
+  const all = state.schools;
+  for(const sj of state.subjects){
+    const acc = zeroAcc();
+    for(const s of all){
+      const c = calc(sj, s.name); addCalc(acc, c);
+      const row = [sj, s.name, c.inc || '', c.temp || ''];
+      for(const col of LOSS_COLS){ const cv = c.cols[col.k]; row.push(cv.n || ''); row.push(namesText(col, cv)); }
+      row.push(c.loss || '');
+      for(const col of GAIN_COLS){ const cv = c.cols[col.k]; if(col.kind==='count'){ row.push(cv.n || ''); row.push(cv.un || ''); } else { row.push(cv.n || ''); row.push(namesText(col, cv)); } }
+      row.push(c.gain || '', c.diff);
+      aoa.push(row);
+    }
+    const r = [sj, '계', acc.inc, acc.temp];
+    for(const col of LOSS_COLS){ r.push(acc.cols[col.k].n); r.push(''); }
+    r.push(acc.loss);
+    for(const col of GAIN_COLS){ if(col.kind==='count'){ r.push(acc.cols[col.k].n); r.push(acc.cols[col.k].un); } else { r.push(acc.cols[col.k].n); r.push(''); } }
+    r.push(acc.gain, acc.diff);
+    aoa.push(r);
+  }
+  sheets.push({name:'전체 배치 현황', aoa, cols:[10,12,5,7, ...LOSS_COLS.flatMap(()=>[6,26]), 7, ...GAIN_COLS.flatMap(c=>c.kind==='count'?[8,8]:[6,22]), 7, 9]});
+  // 2) 기준년도 표들 · 전년도 표들
+  const mx = (label, tab)=>{ const t = TABS.find(x=>x.id===tab); const m = matrixAoa(label, '합계', '총계', L, (sc,sj)=>t.get(sc,sj)); return {name:safeSheet(t.title), ...m}; };
+  sheets.push(mx(`신규(${by})`, 'newHire'), mx(`강사합계(${by})`, 'lecturer'), mx(`미배치(${by})`, 'unassigned'), mx(`정원외(${by})`, 'extra'));
+  // 3) 신규+기간제 비
+  const th = state.settings.ratioThreshold;
+  const ra = [['학교','구분','학급수','교사 정원','신규','신규비(%)','기간제(강사)','기간제비(%)','신규+기간제','정원 대비(%)','증가요인','소요(정원−증가요인)','소요 대비(%)',`기준 ${th}% 초과`]];
+  const r1 = x => x==null ? '' : Math.round(x*10)/10;
+  for(const s of state.schools){
+    const d = ratioData(s); const rn = d.need>0 ? pct(d.sum, d.need) : null;
+    ra.push([s.name, s.level, d.q ? d.q.n : '', d.T ?? '', d.nw, r1(pct(d.nw,d.T)), d.tmp, r1(pct(d.tmp,d.T)), d.sum, r1(pct(d.sum,d.T)), d.inc, d.need ?? '', r1(rn), rn!=null && rn>th ? '초과' : '']);
+  }
+  sheets.push({name:'신규+기간제 비', aoa:ra, cols:[12,5,7,8,6,8,9,9,9,9,8,12,9,10]});
+  // 4) 점검
+  const D = checkData();
+  const ca = [['점검', `작업 기준일 ${fmtDate(state.baseDate)}`, '', `출력 ${nowStamp()}`], [], ['결원 (마련된 자리)','중','고','계']];
+  for(const it of D.lossItems){ const m = D.L[it.k]; ca.push([it.label, m.중, m.고, m.중+m.고]); if(it.col) for(const [cname] of it.col.cats){ const sm = D.sub[it.k+'|'+cname] || {중:0,고:0}; ca.push(['  └ '+cname, sm.중, sm.고, sm.중+sm.고]); } }
+  ca.push(['결원 합계', D.tot.loss.중, D.tot.loss.고, D.tot.loss.중+D.tot.loss.고], [], ['충원 (배치할 인원)','중','고','계']);
+  for(const it of D.gainItems){ const m = D.G[it.k]; ca.push([it.label, m.중, m.고, m.중+m.고]); if(it.k==='gTemp'){ ca.push(['  └ 정원외', m.중-D.unL.중, m.고-D.unL.고, m.중+m.고-D.unTot]); ca.push(['  └ 미배치', D.unL.중, D.unL.고, D.unTot]); } }
+  const LL = D.tot.loss.중+D.tot.loss.고, GG = D.tot.gain.중+D.tot.gain.고;
+  ca.push(['충원 합계', D.tot.gain.중, D.tot.gain.고, GG], [], ['판정', LL===GG ? '이상없음' : `불일치 (차이 ${LL-GG})`]);
+  sheets.push({name:'점검', aoa:ca, cols:[26,10,10,10]});
+  // 5) 명부 대조 (사람별 결과)
+  const pa = [['구분','교과(명부)','연결 교과','원소속','성명','내신구분','상태','배치교 / 발령 교육지원청','1희망지','2희망지','3희망지','비고']];
+  const idx = rosterIndex();
+  for(const kind of ['in','out']){
+    const r = state.rosters[kind]; if(!r) continue;
+    for(const p of r.people){
+      const sj = resolveSubject(p.subjRaw, p.target), sc = resolveSchool(p.schoolRaw);
+      const st = p.deleted ? '삭제' : p.struck ? '미발령' : '발령';
+      let dest = '';
+      if(kind==='in' && sj && !p.deleted && !p.struck) dest = placedAt(p, sj) || '(배치 전)';
+      if(kind==='out' && p.appoint) dest = appointText(p.appoint);
+      pa.push([kind==='in'?'관내내신':'관외(청간)전출', p.subjRaw, sj || '(연결 안 됨)', sc || p.schoolRaw, p.name, p.kind||'', st, dest, ...(p.hopes||['','','']).slice(0,3), [p.cho?'초빙예정':'', p.to?'TO감':''].filter(Boolean).join(', ')]);
+    }
+  }
+  sheets.push({name:'명부 대조', aoa:pa, cols:[12,10,10,14,8,16,7,26,20,20,20,12]});
+  // 6) 학급수·교사 정원
+  const qa = [['학교','구분','학급수(전년도)','학급수(기준년도)','고교 계열','수석교사','특수교사','배정기준 교사','진로진학(+)','보건(+)','교사 정원','계산']];
+  for(const s of state.schools){
+    if(s.name==='교육청') continue;
+    const c = state.classes[s.name] || {}, q = quota(s);
+    qa.push([s.name, s.level, c.prevN ?? '', c.n ?? '', s.level==='고' ? (c.track || defaultTrack(s.name)) : '', c.chief ? (c.chiefSubj || '있음') : '', c.special || '', q ? q.base : '', q ? q.career : '', q ? q.health : '', q ? q.total : '', q ? q.how : '']);
+  }
+  sheets.push({name:'학급수·교사 정원', aoa:qa, cols:[12,5,10,10,10,10,8,10,9,7,9,40]});
+  sheets.push(mx(`증감(${y2})`, 'prevChange'), mx(`기간제(${y2})`, 'prevTemp'));
+  return sheets;
+}
+async function downloadResult(force){
+  const D = checkData();
+  const ok = (D.tot.loss.중+D.tot.loss.고) === (D.tot.gain.중+D.tot.gain.고);
+  if(!ok && !force){ toast('점검이 「이상없음」일 때 받을 수 있습니다.'); return; }
+  const go = await askDialog({title: ok ? '작업 결과 엑셀 받기' : '중간 결과 엑셀 받기', okText:'받기',
+    message:'명단(개인정보)이 들어 있는 엑셀 파일을 만듭니다. 이 파일은 암호화되지 않으니 보관·전달에 주의하세요.' + (ok ? '' : '\n(점검이 아직 「불일치」입니다. 점검용 중간 결과로만 쓰세요.)')});
+  if(!go) return;
+  try{
+    const u8 = await writeXlsx(buildResultSheets());
+    downloadBytes(u8, `HR-placement_result_${state.baseDate ? fmtDate(state.baseDate).replace(/\.$/,'') : 'nodate'}_${stampNow()}${ok?'':'_draft'}.xlsx`, XL_MIME);
+    toast('작업 결과 엑셀을 받았습니다.');
+  }catch(e){ toast('엑셀을 만들지 못했습니다: ' + (e && e.message || e)); }
+}
 
 /* ════════════════════ 저장 목록 (이 브라우저 안, 시점별 저장) ════════════════════
    IndexedDB에 저장 지점을 쌓습니다. 내용은 gzip 압축 후 작업 암호 열쇠(AES-GCM)로 암호화하고,
@@ -2456,7 +2683,10 @@ function renderCheckContent(){
   wrap.append(h('div',{class:'verdict '+(ok?'ok':'bad')},
     h('div',{class:'big', text: ok ? '이상없음' : '불일치'}),
     h('div',null, `결원 합계 ${fmtNum(L)}명 · 충원 합계 ${fmtNum(G)}명`, h('br'),
-      ok ? '결원과 충원 합계가 일치합니다.' : (L>G ? `충원이 ${fmtNum(L-G)}명 부족합니다.` : `충원이 ${fmtNum(G-L)}명 많습니다.`))));
+      ok ? '결원과 충원 합계가 일치합니다.' : (L>G ? `충원이 ${fmtNum(L-G)}명 부족합니다.` : `충원이 ${fmtNum(G-L)}명 많습니다.`)),
+    h('div',{class:'verdict-act'},
+      h('button',{class:'btn primary', type:'button', disabled: !ok, text:'작업 결과 엑셀 받기', title: ok ? '모든 탭의 작업 결과를 한 엑셀 파일로 받습니다' : '이상없음일 때 받을 수 있습니다', onclick:()=>downloadResult(false)}),
+      ok ? null : h('button',{class:'btn sm', type:'button', text:'중간 결과 받기 (관리자)', title:'점검 전 확인용', onclick:()=>requireAdmin(()=>downloadResult(true))}))));
   const statTable = (title, items, M, totals, cls, subOf)=>{
     const t = h('table',{class:'stat '+cls});
     t.append(h('tr',null, h('th',{text:title}), h('th',{text:'중'}), h('th',{text:'고'}), h('th',{text:'계'})));
@@ -3322,6 +3552,10 @@ $('fileInput').addEventListener('change', e=>handleFile(e.target.files[0]));
 $('rosterInInput').addEventListener('change', e=>handleRoster('in', e.target.files[0]));
 $('rosterOutInput').addEventListener('change', e=>handleRoster('out', e.target.files[0]));
 $('appointInput').addEventListener('change', e=>handleAppointPdf(e.target.files[0]));
+$('tplPrev').addEventListener('click', ()=>downloadPrevTemplate(false));
+$('tplPrevVal').addEventListener('click', ()=>downloadPrevTemplate(true));
+$('tplIn').addEventListener('click', ()=>downloadRosterTemplate('in'));
+$('tplOut').addEventListener('click', ()=>downloadRosterTemplate('out'));
 document.querySelectorAll('.drop').forEach(drop=>{
   ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('over'); }));
