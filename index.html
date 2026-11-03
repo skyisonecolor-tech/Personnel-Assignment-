@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WTpGU0mMbuKqK3dmC07yj+fMf/JDbTwUSkF3HX3w+O8='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-oKhc27k6r9UHrFmb296qIwZYAjEoahH+5Ob6SHluO+w='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -214,6 +214,10 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .mx td.can-edit b{font-weight:800;color:var(--ink)}
 .mx td.can-edit .cap{color:#8aa3b8;font-size:.82em;margin-left:1px}
 .mx td.can-edit.bad{background:#f9dcd9}
+.mx td.can-edit-free{cursor:text;background:#f8fbfd}
+.mx td.can-edit-free:hover{background:#e6f0f8}
+.mx td.edited{background:#fdf0cc !important;box-shadow:inset 0 -2px 0 #e2a72e}
+.legend .edit-on{background:var(--accent);color:#fff;padding:1px 8px;border-radius:999px;font-weight:700}
 .mx td input{width:100%;border:1px solid var(--accent);border-radius:3px;padding:0 2px;text-align:center;font-size:1em;height:1.5em;outline:none}
 .pop-split{margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--panel-2);font-size:12.5px}
 .pop-hint{font-size:11.5px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:5px 8px;line-height:1.5}
@@ -663,9 +667,11 @@ const TABS = [
   { id:'ratio',      title:'신규+기간제 비',     kind:'ratio', yr:'base' },
   { id:'check',      title:'점검',               kind:'check' },
   { id:'prevChange', title:'전년도 증감 현황',   kind:'matrix', yr:'prev', src:'prev', grand:'증감계', signed:true, sheetMatch:/증감/,
-    corner:()=>`증감(${prevY2()})`, get:(sc,sj)=>val(state.data.prevChange,sc,sj) },
+    corner:()=>`증감(${prevY2()})`, get:(sc,sj)=>val(state.data.prevChange,sc,sj),
+    prevEdit:true, min:-99, set:(sc,sj,n)=>setPrevVal('prevChange', sc, sj, n) },
   { id:'prevTemp',   title:'전년도 기간제 현황', kind:'matrix', yr:'prev', src:'prev', grand:'총계', signed:false, sheetMatch:/기간제|정원외/,
-    corner:()=>`기간제(${prevY2()})`, get:(sc,sj)=>val(state.data.prevTemp,sc,sj) }
+    corner:()=>`기간제(${prevY2()})`, get:(sc,sj)=>val(state.data.prevTemp,sc,sj),
+    prevEdit:true, min:0, set:(sc,sj,n)=>setPrevVal('prevTemp', sc, sj, n) }
 ];
 const PREV_TABS = TABS.filter(t=>t.src==='prev');
 
@@ -738,6 +744,7 @@ function refreshAll({admin=true, popFocus=false}={}){
 function commit(opts){ save(); refreshAll(opts); }
 /* 학교·교과 목록이 바뀌었을 때 화면 선택값 보정 */
 function fixUi(){
+  if(!isAdmin) ui.prevEdit = false;
   const names = new Set(state.schools.map(s=>s.name));
   if(ui.plSchool && !names.has(ui.plSchool)) ui.plSchool = '';
   if(ui.selSchool && !names.has(ui.selSchool)) ui.selSchool = null;
@@ -1794,6 +1801,31 @@ function yearText(tab){
   if(tab.yr==='base') return state.baseDate ? `${state.baseDate.y}학년도` : '';
   return '';
 }
+/* 전년도 자료 칸 수정 — 업로드한 원래 값을 기억해 두고(되돌리기용) 수정한 칸을 표시 */
+function setPrevVal(tabId, sc, sj, n){
+  const ds = state.data[tabId]; if(!ds) return;
+  if(!hasOwn(ds.values, sc)) ds.values[sc] = {};
+  if(!ds.edited) ds.edited = {};
+  const key = sc+'|'+sj;
+  const orig = hasOwn(ds.edited, key) ? ds.edited[key] : (ds.values[sc][sj] || 0);
+  if(n===orig) delete ds.edited[key]; else ds.edited[key] = orig;
+  if(n) ds.values[sc][sj] = n; else delete ds.values[sc][sj];
+}
+function editedCount(tabId){ const ds = state.data[tabId]; return ds && ds.edited ? Object.keys(ds.edited).length : 0; }
+async function revertPrevEdits(tabId){
+  const ds = state.data[tabId]; const n = editedCount(tabId); if(!n) return;
+  const ok = await askDialog({title:'수정한 칸 되돌리기', okText:'되돌리기', message:`이 탭에서 수정한 ${n}칸을 업로드한 엑셀 값으로 되돌립니다.`});
+  if(!ok) return;
+  for(const key of Object.keys(ds.edited)){
+    const i = key.lastIndexOf('|'); const sc = key.slice(0,i), sj = key.slice(i+1), v = ds.edited[key];
+    if(!hasOwn(ds.values, sc)) ds.values[sc] = {};
+    if(v) ds.values[sc][sj] = v; else delete ds.values[sc][sj];
+  }
+  ds.edited = {};
+  commit(); toast(`${n}칸을 업로드 값으로 되돌렸습니다.`);
+}
+let loginThen = null;
+function requireAdmin(cb){ if(isAdmin) cb(); else { loginThen = cb; openLogin(); } }
 function renderMatrixContent(){
   const tab = currentTab();
   const content = $('content'); content.replaceChildren();
@@ -1803,7 +1835,9 @@ function renderMatrixContent(){
     tab.note ? h('span',{class:'tag', text:'· '+tab.note}) : null,
     h('span',{class:'spacer'}),
     tab.signed ? h('div',{class:'legend'}, h('span',null,h('i',{style:'background:var(--neg)'}),'음수(−)')) : null,
-    tab.editable ? h('div',{class:'legend'}, h('span',null,h('i',{style:'background:#dcebf7'}),'입력 가능한 칸')) : null));
+    tab.editable ? h('div',{class:'legend'}, h('span',null,h('i',{style:'background:#dcebf7'}),'입력 가능한 칸')) : null,
+    tab.prevEdit && ui.prevEdit ? h('div',{class:'legend'}, h('span',{class:'edit-on', text:'수정 모드'}), h('span',{text:'Enter 아래 칸 · Tab 오른쪽 칸 · Esc 취소'})) : null,
+    tab.prevEdit && editedCount(tab.id) ? h('div',{class:'legend'}, h('span',null,h('i',{style:'background:#f6d58a'}),`수정한 칸 ${editedCount(tab.id)}`)) : null));
   if(!tabHasData(tab)){
     emptyCard(content, state.baseDate ? '관리자 화면에서 전년도 자료(엑셀)를 업로드하세요.' : '관리자 화면에서 작업 기준일을 먼저 입력한 뒤, 전년도 자료(엑셀)를 업로드하세요.');
     return;
@@ -1844,9 +1878,20 @@ function renderMatrixContent(){
         }
         cls.push('zero'); tr.append(h('td',{class:cls.join(' ')})); continue;
       }
+      if(tab.prevEdit){
+        const ds = state.data[tab.id], key = sc.name+'|'+sj, ed = !!(ds.edited && hasOwn(ds.edited, key));
+        if(ed) cls.push('edited');
+        if(ui.prevEdit){
+          cls.push('can-edit-free'); if(v<0) cls.push('neg'); if(v===0) cls.push('zero');
+          const td = h('td',{class:cls.join(' '), 'data-ek':key, title: ed ? `업로드 값 ${ds.edited[key]} → 수정 ${v} (눌러서 수정)` : `${sc.name} · ${sj} — 눌러서 수정`}, v===0 ? (ui.showZero?'0':'') : fmtNum(v));
+          td.addEventListener('click', ()=>editMatrixCell(td, tab, sc.name, sj, {min:tab.min, nav:{rows:showSchools.map(x=>x.name), cols:subs}}));
+          tr.append(td); continue;
+        }
+      }
       if(v===0) cls.push('zero'); else if(v<0) cls.push('neg');
       if(sj===ui.selSubject && sc.name===ui.selSchool) cls.push('cell-sel');
       tr.append(h('td',{class:cls.join(' '), text: v===0 ? (ui.showZero?'0':'') : fmtNum(v),
+        title: tab.prevEdit && cls.includes('edited') ? `업로드 값 ${state.data[tab.id].edited[sc.name+'|'+sj]} → 수정 ${v}` : null,
         onclick:()=>{ const same = ui.selSchool===sc.name && ui.selSubject===sj; ui.selSchool = same?null:sc.name; ui.selSubject = same?null:sj; renderView(); }}));
     }
     const rs = tSum(tab, sc.name);
@@ -1874,26 +1919,46 @@ function renderMatrixContent(){
   table.dataset.fit = '1';
   wrap.append(table);
   requestAnimationFrame(()=>fitTable());
+  if(ui.editNext){
+    const key = ui.editNext; ui.editNext = null;
+    requestAnimationFrame(()=>{ const td = table.querySelector(`td[data-ek="${CSS.escape(key)}"]`); if(td) td.click(); });
+  }
 }
-function editMatrixCell(td, tab, school, sj, cap){
+/* 표 칸 바로 고치기. opt: 숫자(=상한, 미배치 탭) 또는 {min, cap, nav:{rows, cols}} */
+function editMatrixCell(td, tab, school, sj, opt){
   if(td.querySelector('input')) return;
+  const o = typeof opt==='number' ? {cap:opt, min:0} : (opt || {});
   const v = tab.get(school, sj);
   const inp = h('input',{type:'text', inputmode:'numeric', value: v ? String(v) : ''});
   td.replaceChildren(inp); inp.focus(); inp.select();
   let done = false;
-  const finish = ok=>{
+  const nextKey = dir=>{
+    if(!o.nav || !dir) return null;
+    const ri = o.nav.rows.indexOf(school), ci = o.nav.cols.indexOf(sj);
+    if(dir==='down' && ri < o.nav.rows.length-1) return o.nav.rows[ri+1]+'|'+sj;
+    if(dir==='up' && ri > 0) return o.nav.rows[ri-1]+'|'+sj;
+    if(dir==='right' && ci < o.nav.cols.length-1) return school+'|'+o.nav.cols[ci+1];
+    if(dir==='left' && ci > 0) return school+'|'+o.nav.cols[ci-1];
+    return null;
+  };
+  const finish = (ok, dir)=>{
     if(done) return; done = true;
     if(ok){
-      const s = inp.value.trim();
+      const s = inp.value.trim().replace(/[−–]/g,'-');
       let n = s==='' ? 0 : Number(s);
-      if(isNaN(n) || n<0 || !Number.isInteger(n)){ toast('0 이상의 정수만 입력할 수 있습니다.'); renderView(); return; }
-      if(n>cap){ toast(`${school} ${sj}: 강사 ${cap}명보다 많이 입력할 수 없어 ${cap}명으로 맞췄습니다.`); n = cap; }
-      tab.set(school, sj, n); commit(); return;
+      const min = o.min ?? 0;
+      if(isNaN(n) || !Number.isInteger(n)){ toast('정수만 입력할 수 있습니다.'); renderView(); return; }
+      if(n < min){ toast(min===0 ? '0 이상의 정수만 입력할 수 있습니다.' : `${min} 이상으로 입력하세요.`); renderView(); return; }
+      if(o.cap!=null && n>o.cap){ toast(`${school} ${sj}: 강사 ${o.cap}명보다 많이 입력할 수 없어 ${o.cap}명으로 맞췄습니다.`); n = o.cap; }
+      ui.editNext = nextKey(dir);
+      if(n!==v){ tab.set(school, sj, n); commit(); } else renderView();
+      return;
     }
     renderView();
   };
   inp.addEventListener('keydown', e=>{
-    if(e.key==='Enter'){ finish(true); }
+    if(e.key==='Enter'){ e.preventDefault(); finish(true, e.shiftKey ? 'up' : 'down'); }
+    else if(e.key==='Tab'){ e.preventDefault(); finish(true, e.shiftKey ? 'left' : 'right'); }
     else if(e.key==='Escape') finish(false);
   });
   inp.addEventListener('blur', ()=>finish(true));
@@ -1912,6 +1977,17 @@ function renderMatrixSide(){
     h('label',{class:'chk'}, c1, tab.editable ? '강사가 있는 교과만 표시' : '값이 있는 교과만 표시'),
     tab.editable ? null : h('label',{class:'chk'}, c2, '0도 숫자로 표시')));
   if(!tabHasData(tab)){ sc.append(h('div',{class:'empty-note', text:'자료가 탑재되면 합계와 학교·교과별 상세가 여기에 표시됩니다.'})); return; }
+  if(tab.prevEdit){
+    const n = editedCount(tab.id);
+    const btn = h('button',{class:'btn sm'+(ui.prevEdit?' primary':''), type:'button', text: ui.prevEdit ? '수정 모드 끄기' : '칸 수정 모드 켜기',
+      onclick:()=>{ if(ui.prevEdit){ ui.prevEdit = false; renderView(); return; }
+        requireAdmin(()=>{ ui.prevEdit = true; renderView(); toast('수정 모드: 칸을 누르면 바로 고칠 수 있습니다.'); }); }});
+    const rv = n ? h('button',{class:'btn sm danger', type:'button', text:`수정한 ${n}칸 되돌리기`, onclick:()=>requireAdmin(()=>revertPrevEdits(tab.id))}) : null;
+    sc.append(h('div',null, h('h4',{text:'수정'}), h('div',{class:'sec-row', style:'margin-top:0;flex-wrap:wrap'}, btn, rv),
+      h('div',{class:'empty-note', style:'margin-top:6px', text: ui.prevEdit
+        ? `칸을 누르고 숫자를 입력하세요. ${tab.min<0 ? '감소는 −1처럼 음수로 입력합니다. ' : ''}고친 값은 바로 전체 배치 현황(증원·기간제)에 반영됩니다.`
+        : '관리자 암호로 수정 모드를 켜면 칸마다 고칠 수 있습니다. 고친 칸은 노란색으로 표시됩니다.'})));
+  }
   const lvSum = lv => state.schools.filter(s=>s.level===lv).reduce((a,s)=>a+tSum(tab, s.name),0);
   const tMid = lvSum('중'), tHigh = lvSum('고');
   const stats = h('div',{class:'stats'},
@@ -2300,6 +2376,7 @@ function adminLockInfo(){ try{ const o = JSON.parse(localStorage.getItem(ADMIN_L
 function setAdminLock(o){ try{ localStorage.setItem(ADMIN_LOCK_KEY, JSON.stringify(o)); }catch(e){} }
 function openLogin(){ $('loginOverlay').classList.remove('hidden'); $('pwInput').value=''; $('loginMsg').textContent=''; setTimeout(()=>$('pwInput').focus(), 30); }
 function closeLogin(){ $('loginOverlay').classList.add('hidden'); }
+$('loginCancel').addEventListener('click', ()=>{ loginThen = null; });
 function tryLogin(){
   const now = Date.now(); const L = adminLockInfo();
   if(now < L.until){ $('loginMsg').textContent = `잠시 후 다시 시도하세요 (${Math.ceil((L.until-now)/1000)}초).`; return; }
@@ -2309,7 +2386,7 @@ function tryLogin(){
   setTimeout(()=>{
     const ok = verify(pw);
     btn.disabled = false; btn.textContent = '확인';
-    if(ok){ setAdminLock({fails:0, until:0}); isAdmin=true; closeLogin(); renderTop(); showAdmin(); }
+    if(ok){ setAdminLock({fails:0, until:0}); isAdmin=true; closeLogin(); renderTop(); if(loginThen){ const f = loginThen; loginThen = null; f(); } else showAdmin(); }
     else{
       const L2 = adminLockInfo(); const f = L2.fails + 1; $('pwInput').value=''; $('pwInput').focus();
       if(f % 5 === 0){ const wait = 30000 * Math.pow(2, Math.min(5, f/5 - 1)); setAdminLock({fails:f, until:Date.now()+wait}); $('loginMsg').textContent=`5회 틀렸습니다. ${Math.round(wait/1000)}초 후 다시 시도하세요.`; }
@@ -2671,6 +2748,8 @@ function renderUploadResult(){
   }
   const ms = h('div',{class:'msgs'});
   for(const m of (pending.msgs||[])) ms.append(h('div',{class:'m '+m.t, text:m.m}));
+  const ec = PREV_TABS.reduce((a,t)=>a+editedCount(t.id),0);
+  if(pending.ready && ec) ms.append(h('div',{class:'m warn', text:`지금 탭에서 직접 수정한 ${ec}칸은 이 파일 값으로 바뀝니다.`}));
   box.append(ms);
   box.append(h('div',{class:'pv-actions'},
     h('button',{class:'btn', type:'button', text:'취소', onclick:()=>{ pending=null; $('fileInput').value=''; renderUploadResult(); }}),
@@ -3028,7 +3107,7 @@ $('loginOk').addEventListener('click', tryLogin);
 $('loginCancel').addEventListener('click', closeLogin);
 $('pwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); if(e.key==='Escape') closeLogin(); });
 $('adminClose').addEventListener('click', hideAdmin);
-$('adminLock').addEventListener('click', ()=>{ isAdmin=false; hideAdmin(); toast('관리자 잠금'); });
+$('adminLock').addEventListener('click', ()=>{ isAdmin=false; ui.prevEdit=false; hideAdmin(); toast('관리자 잠금'); });
 ['dY','dM','dD'].forEach(id=>$(id).addEventListener('input', updateDatePreview));
 $('dApply').addEventListener('click', applyDate);
 $('fileInput').addEventListener('change', e=>handleFile(e.target.files[0]));
