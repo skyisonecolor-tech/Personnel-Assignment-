@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qmGcxgnOetP/inrsSdYLyy3k0VJ8QEdqsf7hpLxWFBs='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2HevxCsIOEZDEzM7jdF0sRFS6RzVKJRyhhK4/ZG3nCg='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -270,6 +270,8 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
 .cls-table td.q{font-weight:800;color:var(--accent)}
 .cls-table .up{color:#2e7d4f;font-weight:700;font-size:11px}
 .cls-table .down{color:var(--neg);font-weight:700;font-size:11px}
+.cls-table td.exc{white-space:nowrap}
+.cls-table input.exnote{width:90px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;margin-left:3px;font-size:12px}
 .cls-table label.chief{display:inline-flex;align-items:center;gap:4px}
 .cls-scroll{max-height:360px;overflow:auto;border:1px solid var(--line-2);border-radius:8px}
 .paste-row{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
@@ -1038,21 +1040,21 @@ function matrixAoa(corner, totalLabel, grandLabel, L, get){
   return {aoa, cols:[12, ...L.subs.map(()=>6), 8]};
 }
 function classAoa(L, withValues){
-  const aoa = [['학교명','학급수\n(전년도)','학급수\n(기준년도)','학급수 증감','수석교사 유무\n(교과명 또는 O)']];
+  const aoa = [['학교명','학급수\n(전년도)','학급수\n(기준년도)','학급수 증감','수석교사 유무\n(교과명 또는 O)','증치\n(교사 정원 추가)','증치 사유']];
   const all = L.mid.concat(L.high);
   all.forEach((sc, i)=>{
     const r = i + 2, c = withValues ? (state.classes[sc] || {}) : {};
     const pv = c.prevN ?? '', bv = c.n ?? '';
-    aoa.push([sc, pv, bv, F(`C${r}-B${r}`, (+bv||0)-(+pv||0)), withValues && c.chief ? (c.chiefSubj || 'O') : '']);
+    aoa.push([sc, pv, bv, F(`C${r}-B${r}`, (+bv||0)-(+pv||0)), withValues && c.chief ? (c.chiefSubj || 'O') : '', withValues && c.extra ? c.extra : '', withValues ? (c.extraNote || '') : '']);
   });
   const m2 = 1 + L.mid.length, h2 = 1 + all.length;
   const cs = (c, a1, b1)=>{ let t=0; for(let r=a1;r<=b1;r++){ const v = aoa[r-1][c]; t += typeof v==='number' ? v : (v && v.v) || 0; } return t; };
-  const mid = [1,2,3].map(c=>cs(c,2,m2)), high = [1,2,3].map(c=>cs(c,m2+1,h2));
-  aoa.push(['중계', F(`SUM(B2:B${m2})`, mid[0]), F(`SUM(C2:C${m2})`, mid[1]), F(`SUM(D2:D${m2})`, mid[2]), '']);
-  aoa.push(['고계', F(`SUM(B${m2+1}:B${h2})`, high[0]), F(`SUM(C${m2+1}:C${h2})`, high[1]), F(`SUM(D${m2+1}:D${h2})`, high[2]), '']);
+  const mid = [1,2,3,5].map(c=>cs(c,2,m2)), high = [1,2,3,5].map(c=>cs(c,m2+1,h2));
+  aoa.push(['중계', F(`SUM(B2:B${m2})`, mid[0]), F(`SUM(C2:C${m2})`, mid[1]), F(`SUM(D2:D${m2})`, mid[2]), '', F(`SUM(F2:F${m2})`, mid[3]), '']);
+  aoa.push(['고계', F(`SUM(B${m2+1}:B${h2})`, high[0]), F(`SUM(C${m2+1}:C${h2})`, high[1]), F(`SUM(D${m2+1}:D${h2})`, high[2]), '', F(`SUM(F${m2+1}:F${h2})`, high[3]), '']);
   const g = aoa.length + 1;
-  aoa.push(['청계', F(`B${g-2}+B${g-1}`, mid[0]+high[0]), F(`C${g-2}+C${g-1}`, mid[1]+high[1]), F(`D${g-2}+D${g-1}`, mid[2]+high[2]), '']);
-  return {aoa, cols:[14,10,10,10,16]};
+  aoa.push(['청계', F(`B${g-2}+B${g-1}`, mid[0]+high[0]), F(`C${g-2}+C${g-1}`, mid[1]+high[1]), F(`D${g-2}+D${g-1}`, mid[2]+high[2]), '', F(`F${g-2}+F${g-1}`, mid[3]+high[3]), '']);
+  return {aoa, cols:[14,10,10,10,16,12,24]};
 }
 async function downloadPrevTemplate(withValues){
   const L = listsForTemplate();
@@ -1063,6 +1065,7 @@ async function downloadPrevTemplate(withValues){
   const guide = [['작성 안내'],
     ['1. 「전년도 증감 현황」「전년도 기간제 현황」: 학교(행) × 교과(열)에 숫자를 넣습니다. 증감의 감소는 -1처럼 음수로 씁니다.'],
     ['2. 「학급수」: 학급수(전년도)·학급수(기준년도)를 넣고, 수석교사가 있으면 교과명(또는 O)을 씁니다. 교사 정원은 기준년도 학급수로 계산합니다.'],
+    ['   학교 사정으로 교사 정원이 더 배정된 경우 「증치」 열에 추가 인원(예: 1)을, 「증치 사유」에 간단한 사유를 씁니다. 줄어드는 경우는 -1처럼 음수로 씁니다.'],
     ['3. 중계·고계·총계 줄과 합계 열은 수식이라 그대로 두면 됩니다. 학교 순서는 중학교 → 고등학교 → 교육청을 지켜 주세요(중계·고계 범위로 중/고를 구분).'],
     ['4. 학교를 더하거나 빼려면 같은 구역(중/고) 안에서 행을 넣고 지운 뒤, 중계·고계 수식 범위를 맞춰 주세요. 시트 이름은 바꾸지 않는 것이 좋습니다.'],
     ['5. 다 쓰면 웹앱 관리자 → 2. 전년도 자료 업로드에 이 파일을 올립니다.']];
@@ -1163,13 +1166,13 @@ function buildResultSheets(){
   }
   sheets.push({name:'명부 대조', aoa:pa, cols:[12,10,10,14,8,16,7,26,20,20,20,12]});
   // 6) 학급수·교사 정원
-  const qa = [['학교','구분','학급수(전년도)','학급수(기준년도)','고교 계열','수석교사','특수교사','배정기준 교사','진로진학(+)','보건(+)','교사 정원','계산']];
+  const qa = [['학교','구분','학급수(전년도)','학급수(기준년도)','고교 계열','수석교사','특수교사','배정기준 교사','진로진학(+)','보건(+)','증치','증치 사유','교사 정원','계산']];
   for(const s of state.schools){
     if(s.name==='교육청') continue;
     const c = state.classes[s.name] || {}, q = quota(s);
-    qa.push([s.name, s.level, c.prevN ?? '', c.n ?? '', s.level==='고' ? (c.track || defaultTrack(s.name)) : '', c.chief ? (c.chiefSubj || '있음') : '', c.special || '', q ? q.base : '', q ? q.career : '', q ? q.health : '', q ? q.total : '', q ? q.how : '']);
+    qa.push([s.name, s.level, c.prevN ?? '', c.n ?? '', s.level==='고' ? (c.track || defaultTrack(s.name)) : '', c.chief ? (c.chiefSubj || '있음') : '', c.special || '', q ? q.base : '', q ? q.career : '', q ? q.health : '', c.extra || '', c.extraNote || '', q ? q.total : '', q ? q.how : '']);
   }
-  sheets.push({name:'학급수·교사 정원', aoa:qa, cols:[12,5,10,10,10,10,8,10,9,7,9,40]});
+  sheets.push({name:'학급수·교사 정원', aoa:qa, cols:[12,5,10,10,10,10,8,10,9,7,6,18,9,40]});
   sheets.push(mx(`증감(${y2})`, 'prevChange'), mx(`기간제(${y2})`, 'prevTemp'));
   return sheets;
 }
@@ -2498,7 +2501,8 @@ function quota(s){
   const career = n<=8 ? 1 : 0;
   const health = st.includeHealth && n>=9 ? 1 : 0;
   const special = st.includeSpecial ? (+c.special||0) : 0;
-  return {n, base, career, health, special, total: base+career+health+special, how};
+  const extra = Math.round(+c.extra||0);
+  return {n, base, career, health, special, extra, extraNote:c.extraNote||'', total: base+career+health+special+extra, how};
 }
 function lossFactors(school){
   let inc = 0;
@@ -2613,6 +2617,7 @@ function renderRatioSide(){
         h('span',{text:'진로진학상담 (8학급 이하 +1)'}), h('span',{class:'v',text:q.career}),
         h('span',{text:'보건 (9학급 이상)'}), h('span',{class:'v',text:q.health}),
         h('span',{text:'특수 (입력값)'}), h('span',{class:'v',text:q.special}),
+        h('span',{text:'증치' + (q.extraNote ? ` (${q.extraNote})` : '')}), h('span',{class:'v', style:q.extra?'color:var(--accent)':null, text: q.extra>0 ? '+'+q.extra : String(q.extra)}),
         h('span',{text:'수석교사'}), h('span',{class:'v',text: (state.classes[d.s.name]||{}).chief ? ((state.classes[d.s.name]||{}).chiefSubj || '있음') : '없음'}),
         h('span',{text:'교사 정원'}), h('span',{class:'v',style:'font-size:14px',text:q.total})),
       h('div',{class:'empty-note', style:'margin-top:6px', text:q.how}));
@@ -2919,7 +2924,7 @@ function renderClassCard(){
     toast(`${ok}개교 반영` + (miss.length ? ` · 못 찾은 이름: ${miss.slice(0,5).join(', ')}${miss.length>5?' …':''}` : ''));
   }})));
   const t = h('table',{class:'cls-table'});
-  t.append(h('tr',null, ...['학교','구분','학급수(전년도)','학급수(기준년도)','계열(고)','수석교사','특수교사','교사 정원'].map(x=>h('th',{text:x}))));
+  t.append(h('tr',null, ...['학교','구분','학급수(전년도)','학급수(기준년도)','계열(고)','수석교사','특수교사','증치 · 사유','교사 정원'].map(x=>h('th',{text:x}))));
   for(const s of state.schools){
     if(s.name==='교육청') continue;
     const c = state.classes[s.name] || {};
@@ -2941,16 +2946,20 @@ function renderClassCard(){
     const chiefWrap = h('label',{class:'chief'}, chief, c.chief && c.chiefSubj ? h('span',{class:'note', text:c.chiefSubj}) : null);
     const sp = h('input',{type:'number', min:0, max:30, value: c.special ?? '', 'aria-label':`${s.name} 특수교사`});
     sp.addEventListener('change', ()=>save1('special', sp.value==='' ? 0 : Number(sp.value)));
+    const ex = h('input',{type:'number', step:1, min:-20, max:30, value: c.extra || '', placeholder:'0', 'aria-label':`${s.name} 증치`});
+    ex.addEventListener('change', ()=>{ const v = ex.value==='' ? 0 : Number(ex.value); if(isNaN(v) || !Number.isInteger(v)){ toast('증치는 정수로 입력하세요 (줄면 -1).'); ex.value = c.extra || ''; return; } save1('extra', v); });
+    const exn = h('input',{type:'text', class:'exnote', maxlength:40, value: c.extraNote || '', placeholder:'사유', 'aria-label':`${s.name} 증치 사유`});
+    exn.addEventListener('change', ()=>save1('extraNote', exn.value.trim()));
     const q = quota(s);
     const qCell = h('td',{class:'q', text: q ? q.total : '', title: q ? q.how : ''});
     const d = (c.prevN!=null && c.n!=null) ? c.n - c.prevN : null;
     t.append(h('tr',null, h('td',{text:s.name}), h('td',{text:s.level}),
       h('td',{class:'note', text: c.prevN!=null ? `${c.prevN}` : ''}, d ? h('span',{class: d>0?'up':'down', text: d>0?` ▲${d}`:` ▼${-d}`}) : null),
-      h('td',null,n), h('td',null,trackEl), h('td',null,chiefWrap), h('td',null,sp), qCell));
+      h('td',null,n), h('td',null,trackEl), h('td',null,chiefWrap), h('td',null,sp), h('td',{class:'exc'}, ex, exn), qCell));
   }
   if(state.meta && state.meta.classSheet) box.prepend(h('div',{class:'msgs', style:'margin:0 0 8px'}, h('div',{class:'m ok', text:`학급수·수석교사는 「${state.meta.fileName}」의 「${state.meta.classSheet}」 시트에서 불러왔습니다. 여기서 고치면 고친 값이 쓰입니다(다시 업로드하면 파일 값으로 바뀜).`})));
   box.append(h('div',{class:'cls-scroll'}, t),
-    h('div',{class:'note', style:'margin-top:8px', text:'교사 정원 = 배정기준(8학급 이하는 배정표, 9학급 이상은 중 학급×1.75[9학급 +2, 10학급 +1] / 고 학급×계열 계수, 반올림) + 진로진학상담(8학급 이하 1명) + 보건(9학급 이상) + 특수. 수석교사 TO 0.5는 9학급 이상 산식에 더합니다. 교장·교감 제외.'}));
+    h('div',{class:'note', style:'margin-top:8px', text:'교사 정원 = 배정기준(8학급 이하는 배정표, 9학급 이상은 중 학급×1.75[9학급 +2, 10학급 +1] / 고 학급×계열 계수, 반올림) + 진로진학상담(8학급 이하 1명) + 보건(9학급 이상) + 특수 + 증치(학교 사정에 따른 추가·감축, 엑셀 「학급수」 시트의 「증치」 열로도 넣을 수 있음). 수석교사 TO 0.5는 9학급 이상 산식에 더합니다. 교장·교감 제외.'}));
 }
 
 /* ── 엑셀 읽기: readBook()이 격리된 작업 공간에서 값만 받아 옴 ── */
@@ -3030,7 +3039,9 @@ function parseClassSheet(sheet, sheetName){
     school: hd.findIndex(x=>/학교/.test(x)),
     prev: hd.findIndex(x=>/학급수/.test(x) && /전년/.test(x)),
     base: hd.findIndex(x=>/학급수/.test(x) && /기준|금년|당해|예정/.test(x)),
-    chief: hd.findIndex(x=>/수석/.test(x))
+    chief: hd.findIndex(x=>/수석/.test(x)),
+    extra: hd.findIndex(x=>/증치/.test(x) && !/사유|비고/.test(x)),
+    extraNote: hd.findIndex(x=>/증치/.test(x) && /사유|비고/.test(x))
   };
   if(col.base<0){ const cands = hd.map((x,i)=>/학급수/.test(x) && !/증감|전년/.test(x) ? i : -1).filter(i=>i>=0); col.base = cands.length ? cands[0] : col.prev; }
   if(col.base<0) return {error:`「${sheetName}」 시트에서 학급수 열을 찾지 못했습니다.`};
@@ -3042,9 +3053,12 @@ function parseClassSheet(sheet, sheetName){
     if(TOTAL_RE.test(name)){ totals[name] = base.n; continue; }
     if(isBadKey(name)){ msgs.push({t:'warn', m:`「${sheetName}」 사용할 수 없는 학교명 「${name}」은 건너뜁니다.`}); continue; }
     if(!base.ok || !Number.isInteger(base.n) || base.n<0) msgs.push({t:'warn', m:`「${sheetName}」 ${name}: 학급수 「${aoa[r][col.base]}」을 읽지 못해 0으로 처리`});
-    rows[name] = {base: base.ok ? base.n : 0, prev: prev.n, chief: col.chief>=0 ? chiefValue(aoa[r][col.chief]) : null};
+    let extra = 0;
+    if(col.extra>=0){ const x = toNum(aoa[r][col.extra]); if(!x.ok || !Number.isInteger(x.n)) msgs.push({t:'warn', m:`「${sheetName}」 ${name}: 증치 「${aoa[r][col.extra]}」을 읽지 못해 0으로 처리`}); else extra = x.n; }
+    rows[name] = {base: base.ok ? base.n : 0, prev: prev.n, chief: col.chief>=0 ? chiefValue(aoa[r][col.chief]) : null,
+      extra, extraNote: col.extraNote>=0 ? String(aoa[r][col.extraNote]||'').trim().slice(0,40) : ''};
   }
-  return {sheetName, rows, totals, msgs, hasChiefCol: col.chief>=0, hasPrevCol: col.prev>=0};
+  return {sheetName, rows, totals, msgs, hasChiefCol: col.chief>=0, hasPrevCol: col.prev>=0, hasExtraCol: col.extra>=0};
 }
 function guessLevel(name, row, midRange, highRange){
   if(midRange && row>=midRange[0] && row<=midRange[1]) return '중';
@@ -3131,8 +3145,9 @@ async function handleFile(file){
         const off = chk.filter(([k,v])=>k in c.totals && Math.abs(c.totals[k]-v)>1e-9).map(([k,v])=>`${k} 파일 ${c.totals[k]} / 계산 ${v}`);
         if(off.length) res.msgs.push({t:'warn', m:`「${classSheetName}」 소계가 다릅니다: ${off.join(', ')}`});
         const chiefN = Object.values(resolved).filter(v=>v.chief).length;
-        res.msgs.push({t:'ok', m:`「${classSheetName}」 학급수 ${Object.keys(resolved).length}개교 (기준년도 합계 ${fmtNum(lvSum('중')+lvSum('고'))}학급)` + (c.hasChiefCol ? ` · 수석교사 ${chiefN}개교` : ' · 수석교사 열 없음')});
-        res.classes = {sheetName: classSheetName, rows: resolved, hasChiefCol: c.hasChiefCol};
+        res.msgs.push({t:'ok', m:`「${classSheetName}」 학급수 ${Object.keys(resolved).length}개교 (기준년도 합계 ${fmtNum(lvSum('중')+lvSum('고'))}학급)` + (c.hasChiefCol ? ` · 수석교사 ${chiefN}개교` : ' · 수석교사 열 없음')
+          + (c.hasExtraCol ? ` · 증치 ${Object.values(resolved).filter(v=>v.extra).length}개교(합계 ${(t=>t>0?'+'+t:String(t))(Object.values(resolved).reduce((a,v)=>a+(v.extra||0),0))}명)` : '')});
+        res.classes = {sheetName: classSheetName, rows: resolved, hasChiefCol: c.hasChiefCol, hasExtraCol: c.hasExtraCol};
       }
     } else res.msgs.push({t:'info', m:'학급수 시트가 없어 학급수·수석교사는 바꾸지 않습니다 (관리자 5번에서 직접 입력 가능).'});
     res.schools = schoolList; res.subjects = subjList;
@@ -3192,6 +3207,7 @@ function applyPending(){
       const c = state.classes[nm] = Object.assign({}, state.classes[nm] || {});
       c.n = v.base; c.prevN = v.prev; c.src = 'file';
       if(pending.classes.hasChiefCol){ c.chief = !!v.chief; c.chiefSubj = v.chief || ''; }
+      if(pending.classes.hasExtraCol){ c.extra = v.extra || 0; c.extraNote = v.extraNote || ''; }
     }
     state.meta.classSheet = pending.classes.sheetName;
   }
