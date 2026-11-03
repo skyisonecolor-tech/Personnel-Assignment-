@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2HevxCsIOEZDEzM7jdF0sRFS6RzVKJRyhhK4/ZG3nCg='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6LJcRzVTcOtWOeySxlapsEiFUI3Q/kgqcRGLgEfqlHo='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>인사 배치</title>
@@ -203,6 +203,31 @@ table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:10
 .placed-tag{font-size:11.5px;color:var(--ok);font-weight:600}
 .chip.placed{box-shadow:inset 0 0 0 1px #6fb38a;background:#eef8f1}
 .chip.linked{box-shadow:inset 0 0 0 1px #6fb38a}
+.chip.appt{background:#e6f0fb;box-shadow:inset 0 0 0 1px #9cc0e6;cursor:pointer}
+.chip.appt:hover{background:#fdecea;box-shadow:inset 0 0 0 1px #efc1be;text-decoration:line-through}
+.chip.appt.orphan{background:#fff4d6;box-shadow:inset 0 0 0 1px #e6c66e}
+.pop-row.appt{background:#f3f8fd;border-radius:6px;padding:2px 3px}
+.pop .ap-name{flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;border:1px solid #c9dcf0;background:#fff;border-radius:5px;padding:4px 7px;text-align:left;cursor:pointer;font-size:13px}
+.pop .ap-name:hover{border-color:#efc1be;background:#fdf3f2}
+.pop .ap-name:hover .nm{text-decoration:line-through}
+.pop .ap-name.orphan{border-color:#e6c66e;background:#fffaf0}
+.pop .ap-name .nm{white-space:nowrap;flex:none}
+.pop-row.appt input.note-in[type=text]{width:64px}
+.pop .ap-meta{min-width:0;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:auto}
+.ap-box{border-top:1px dashed var(--line);margin-top:4px;padding-top:4px;display:flex;flex-direction:column;gap:3px}
+.ap-head{color:#2c5f93}
+.ap-done{color:var(--ok);font-weight:600}
+.pop input.ap-filter[type=text]{flex:none;width:100%;padding:4px 7px;font-size:12.5px}
+.pop .ap-pick{display:flex;align-items:baseline;gap:6px;width:100%;border:1px solid #d7e5f3;background:#f7fbff;border-radius:6px;padding:4px 8px;text-align:left;cursor:pointer;font-size:12.5px}
+.pop .ap-pick:hover{background:#e6f0fb;border-color:#9cc0e6}
+.pop .ap-pick .nm{font-weight:600}
+.pop .ap-pick .su{font-size:10.5px;background:#efe5fb;color:#5b3c8c;border-radius:4px;padding:0 4px}
+.pop .ap-pick .go{font-size:11px;color:#2c5f93;font-weight:700;flex:none}
+.ap-more summary{font-size:11.5px;color:var(--muted);cursor:pointer;padding:2px 0}
+.ap-more .ap-pick{margin-top:3px}
+.region-row{display:flex;align-items:center;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.region-row select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff}
+.region-row .note{font-size:12px}
 .stepper{display:flex;align-items:center;gap:6px}
 .stepper .btn{width:32px;padding:5px 0}
 .stepper input[type=text]{flex:none;width:70px;text-align:center;font-size:15px;font-weight:700}
@@ -518,11 +543,11 @@ table.stat tr.tot td{font-weight:800;background:var(--grand)}
           <div id="rosterOutResult"></div>
         </div>
         <div class="card" id="cardAppoint">
-          <h4><span class="step">6</span>인사발령 PDF <span class="note">도교육청 인사발령(중등교사) — 관외전출 발령 여부 확인</span></h4>
+          <h4><span class="step">6</span>인사발령 PDF <span class="note">도교육청 인사발령(중등교사) — 우리 지역 발령자 명단 · 관외전출 발령 여부 확인</span></h4>
           <label class="drop" for="appointInput" data-drop="appoint"><b>PDF 파일 선택</b> 또는 여기로 끌어다 놓기</label>
           <input id="appointInput" type="file" accept=".pdf,application/pdf" class="hidden">
           <div id="appointResult"></div>
-          <p class="note" style="margin:8px 0 0">양식은 없습니다 — 도교육청 인사발령(중등교사) PDF를 그대로 올립니다. 명단에 없는 관외 내신자는 자동으로 미발령(줄긋기), 발령된 사람은 발령 교육지원청을 표시합니다. PDF의 도 전체 명단은 저장하지 않습니다.</p>
+          <p class="note" style="margin:8px 0 0">양식은 없습니다 — 도교육청 인사발령(중등교사) PDF를 그대로 올립니다. 우리 지역으로 발령난 교사(교과·성명·전임지·발령 구분)는 배치 탭 충원 칸에서 골라 넣을 수 있습니다. 명단에 없는 관외 내신자는 자동으로 미발령(줄긋기), 발령된 사람은 발령 교육지원청을 표시합니다. PDF의 도 전체 명단은 저장하지 않고 우리 지역 발령자만 암호화해 저장합니다.</p>
         </div>
         <div class="card" id="cardClasses">
           <h4><span class="step">5</span>학급수 · 교사 정원 <span class="note">신규+기간제 비 계산용 · 교원정원 배정기준(교장·교감 제외) · 학급수 양식은 2번 양식의 「학급수」 시트</span></h4>
@@ -765,7 +790,7 @@ const SUBJECT_ALIAS = { '도덕':'도덕윤리', '일본어':'일어', '중국�
   '전기전자통신':'전기자통', '러시아':'러시아어', '스페인':'스페인어' };
 
 function blankState(){ return { baseDate:null, schools:[], subjects:[], data:{}, meta:{}, rosters:{}, manual:{}, entries:{}, classes:{}, settings:defaultSettings(), aliases:{school:{}, subject:{}} }; }
-function defaultSettings(){ return {ratioThreshold:30, includeHealth:true, includeSpecial:true, idleLockMin:30}; }
+function defaultSettings(){ return {ratioThreshold:30, includeHealth:true, includeSpecial:true, idleLockMin:30, region:'시흥'}; }
 const state = blankState();   // 저장된 자료는 작업 암호로 잠금 해제한 뒤 불러옴
 /* 이전 버전 자료 정리: 초빙 표시 기준 변경(초빙예정만), 숫자로만 넣던 칸 정리 */
 function migrate(){
@@ -1165,6 +1190,17 @@ function buildResultSheets(){
     }
   }
   sheets.push({name:'명부 대조', aoa:pa, cols:[12,10,10,14,8,16,7,26,20,20,20,12]});
+  // 5-1) 인사발령 (우리 지역 발령자 → 배치교)
+  if(state.incoming){
+    const ia = [['발령 구분','교과(발령)','연결 교과','성명','전임지','수석','배치교','충원 칸','특이사항']];
+    const ap = apIndex();
+    for(const p of state.incoming.people){
+      const at = ap.get(p.id);
+      ia.push([secShort(p.sec), p.subjRaw, incomingSubj(p) || '(연결 안 됨)', p.name, p.old, p.su ? '수석' : '',
+        at ? at.sc : '(배치 전)', at && COL_BY_K[at.k] ? COL_BY_K[at.k].label : '', at ? entryLabel(at.en) : '']);
+    }
+    sheets.push({name:safeSheet(`인사발령(${state.incoming.region})`), aoa:ia, cols:[12,12,10,8,18,6,12,10,14]});
+  }
   // 6) 학급수·교사 정원
   const qa = [['학교','구분','학급수(전년도)','학급수(기준년도)','고교 계열','수석교사','특수교사','배정기준 교사','진로진학(+)','보건(+)','증치','증치 사유','교사 정원','계산']];
   for(const s of state.schools){
@@ -1364,7 +1400,7 @@ function readPdf(buf){
     w.postMessage(buf, [buf]);
   });
 }
-const APPOINT_RX = /^\s*(\S+)\s+(\S*(?:교육지원청|교육청))\s+(?:수석교사\s+)?([가-힣A-Za-z·]{2,12})\s+(\S*(?:학교|교육지원청|교육청))(?:\s+수석교사)?\s*$/;
+const APPOINT_RX = /^\s*(\S+)\s+(\S*(?:교육지원청|교육청))\s+(수석교사\s+)?([가-힣A-Za-z·]{2,12})\s+(\S*(?:학교|교육지원청|교육청))(\s+(?:수석)?교사)?\s*$/;
 const TRANSFER_SECTIONS = /^(일반전보|수석교사전보)$/;
 function parseAppointLines(lines){
   let sec = ''; const rows = []; const bySec = {};
@@ -1374,13 +1410,80 @@ function parseAppointLines(lines){
     if(m){ sec = m[1].replace(/\s+/g,''); continue; }
     const r = t.match(APPOINT_RX);
     if(!r) continue;
-    rows.push({sec, subj:r[1], office:r[2], name:r[3], old:r[4].replace(/\s+/g,'')});
+    const su = !!r[3] || /수석/.test(r[6]||'') || /수석/.test(sec);
+    rows.push({sec, subj:r[1], office:r[2], name:r[4], old:r[5].replace(/\s+/g,''), su});
     bySec[sec] = (bySec[sec]||0) + 1;
   }
   return {rows, bySec};
 }
 function shortOffice(o){ return String(o||'').replace(/^경기도/,''); }
-function isHomeOffice(o){ return autoSchool(o)==='교육청'; }
+/* 우리 지역(교육지원청) — 관리자 ⑥에서 고름. 「시흥」처럼 교육지원청 앞 이름만 저장 */
+const GG_OFFICES = ['가평','고양','광명','광주하남','구리남양주','군포의왕','김포','동두천양주','부천','성남','수원','시흥','안산','안성','안양과천','양평','여주','연천','용인','의정부','이천','파주','평택','포천','화성오산'];
+function officeKey(o){ return String(o||'').replace(/\s+/g,'').replace(/^경기도/,'').replace(/교육지원청$|교육청$/,''); }
+function homeRegion(){ return (state.settings && state.settings.region) || '시흥'; }
+function isHomeOffice(o){ return officeKey(o)===homeRegion(); }
+
+/* ── 우리 지역으로 발령난 교사 (충원 칸에서 골라 넣기) ──
+   PDF 줄 가운데 신임지가 우리 교육지원청인 사람만 남깁니다 (교과·성명·전임지·발령 구분·수석 여부).
+   발령 구분에 따라 기본 충원 칸을 정합니다. */
+const INCOMING_COL = [
+  [/^(일반전보|수석교사전보|수석교사신규)$/, 'gExt'],
+  [/파견복귀/, 'gReturn'],
+  [/복직/, 'gReinst'],
+  [/타시도전입|타도전입/, 'gOther'],
+  [/신규/, 'gNew']
+];
+function incomingCol(sec){ for(const [rx, k] of INCOMING_COL) if(rx.test(sec)) return k; return 'gExt'; }
+function secShort(sec){ return String(sec||'').replace(/^일반전보$/,'관외전입').replace(/^수석교사전보$/,'수석교사 전보').replace(/^진로전담교사신규$/,'진로전담 신규').replace(/^수석교사신규$/,'수석교사 신규'); }
+function buildIncoming(rows, prev){
+  const old = new Map(((prev && prev.people) || []).map(p=>[p.key, p.id]));
+  const seen = new Set(), people = [];
+  for(const r of rows){
+    if(!isHomeOffice(r.office)) continue;
+    const key = [r.sec, r.subj, r.name, r.old].join('|');
+    if(seen.has(key)) continue; seen.add(key);
+    people.push({id: old.get(key) || uid(), key, sec:r.sec, subjRaw:r.subj, name:r.name, old:r.old, su:!!r.su, col:incomingCol(r.sec)});
+  }
+  return people;
+}
+function incomingSubj(p){ return resolveSubject(p.subjRaw); }
+/* 배치 위치 색인: 발령자 id → {sj, sc, k, en} (모든 교과·학교·충원 칸) */
+function apIndex(){
+  const hit = CALC_CACHE.get('ap'); if(hit) return hit;
+  const m = new Map();
+  for(const sj in state.entries) for(const sc in state.entries[sj]) for(const k in state.entries[sj][sc]){
+    const list = state.entries[sj][sc][k];
+    if(Array.isArray(list)) for(const en of list) if(en.aid) m.set(en.aid, {sj, sc, k, en});
+  }
+  CALC_CACHE.set('ap', m); return m;
+}
+function incomingById(id){ const I = state.incoming; return I ? I.people.find(p=>p.id===id) || null : null; }
+function incomingTip(p){
+  if(!p) return '인사발령 명단에서 찾을 수 없음 (PDF를 다시 올렸다면 확인)';
+  return [`인사발령 ${secShort(p.sec)}`, p.subjRaw, `전임지 ${p.old}`, p.su ? '수석교사' : ''].filter(Boolean).join(' · ');
+}
+function placeIncoming(p, sj, sc, k){
+  const at = apIndex().get(p.id);
+  if(at) setEntries(at.sj, at.sc, at.k, getEntries(at.sj, at.sc, at.k).filter(x=>x.aid!==p.id));
+  const list = getEntries(sj, sc, k).slice();
+  list.push({id:uid(), name:p.name, cat: p.su ? '수석교사' : '', aid:p.id});
+  setEntries(sj, sc, k, list);
+  commit();
+  toast(at ? `${p.name}: ${at.sc} → ${sc} 「${COL_BY_K[k].label}」으로 옮겼습니다.` : `${p.name}을(를) ${sc} 충원 「${COL_BY_K[k].label}」에 넣었습니다.`);
+}
+function unplaceIncoming(sj, sc, k, en){
+  setEntries(sj, sc, k, getEntries(sj, sc, k).filter(x=>x.id!==en.id));
+  commit();
+  toast(`${en.name}을(를) 발령 명단으로 되돌렸습니다.`);
+}
+function incomingStats(){
+  const I = state.incoming; if(!I) return null;
+  const ap = apIndex(); const byCol = {}; let placed = 0, noSubj = 0;
+  for(const p of I.people){ byCol[p.col] = (byCol[p.col]||0)+1; if(ap.has(p.id)) placed++; if(!incomingSubj(p)) noSubj++; }
+  const ids = new Set(I.people.map(p=>p.id)); let orphan = 0;
+  for(const [aid] of ap) if(!ids.has(aid)) orphan++;
+  return {total:I.people.length, byCol, placed, noSubj, orphan};
+}
 function matchAppoint(rows){
   const tr = new Map(), other = new Map();
   for(const r of rows){
@@ -1403,16 +1506,23 @@ function matchAppoint(rows){
 }
 async function handleAppointPdf(file){
   if(!file) return;
-  if(!state.rosters.out){ toast('관외(청간)전출 명부를 먼저 올리세요.'); return; }
+  if(!state.schools.length){ toast('전년도 자료(학교 목록)를 먼저 올리세요.'); return; }
   appointPending = {fileName:file.name, loading:true}; renderAppointCard();
   try{
     const doc = await readPdf(await file.arrayBuffer());
     const {rows, bySec} = parseAppointLines(doc.lines);
     if(!rows.length) throw new Error('발령 명단(교과 · 신임지 · 성명 · 전임지) 줄을 찾지 못했습니다. 인사발령 PDF가 맞는지 확인하세요.');
-    const res = matchAppoint(rows);
-    appointPending = {fileName:file.name, pages:doc.pages, total:rows.length, bySec, res};
+    appointPending = {fileName:file.name, pages:doc.pages, total:rows.length, bySec, rows};   // rows는 화면 메모리에만 (저장 안 함)
+    refreshAppointPending();
   }catch(e){ appointPending = {fileName:file.name, error:String(e && e.message || e)}; }
   renderAppointCard();
+}
+/* 지역을 바꾸면 미리보기를 다시 계산 */
+function refreshAppointPending(){
+  const P = appointPending; if(!P || !P.rows) return;
+  P.res = matchAppoint(P.rows);
+  P.incoming = buildIncoming(P.rows, state.incoming);
+  P.region = homeRegion();
 }
 function applyAppoint(){
   const P = appointPending; if(!P || !P.res) return;
@@ -1424,10 +1534,11 @@ function applyAppoint(){
     if(ap.st==='ok') ok++; else none++;
     if(was!==p.struck) changed++;
   }
-  state.appointMeta = {fileName:P.fileName, loadedAt:nowStamp(), total:P.total, ok, none};
+  state.appointMeta = {fileName:P.fileName, loadedAt:nowStamp(), total:P.total, ok, none, matched: P.res.length>0};
+  state.incoming = {fileName:P.fileName, loadedAt:nowStamp(), region:P.region, people:P.incoming};
   appointPending = null; $('appointInput').value='';
   commit();
-  toast(`인사발령 반영: 발령 ${ok}명 · 미발령 처리 ${none}명 (바뀐 사람 ${changed}명)`);
+  toast(`인사발령 반영: ${P.res.length ? `관외전출 발령 ${ok}명 · 미발령 처리 ${none}명 (바뀐 사람 ${changed}명) · ` : ''}${P.region} 발령 ${P.incoming.length}명`);
 }
 function appointText(ap){
   if(!ap) return '';
@@ -1436,9 +1547,30 @@ function appointText(ap){
   if(ap.st==='other') return `${ap.sec||'다른 명단'}: ${shortOffice(ap.office)} — 관외전출 아님`;
   return '인사발령 명단에 없음 — 미발령';
 }
+function incomingSummaryText(people){
+  const by = {}; for(const p of people) by[p.col] = (by[p.col]||0)+1;
+  return GAIN_COLS.filter(c=>by[c.k]).map(c=>`${c.label} ${by[c.k]}`).join(' · ');
+}
+function renderRegionRow(box){
+  const sel = h('select',{'aria-label':'우리 지역 교육지원청'});
+  const cur = homeRegion();
+  const opts = GG_OFFICES.includes(cur) ? GG_OFFICES : GG_OFFICES.concat([cur]);
+  for(const o of opts) sel.append(h('option',{value:o, text:o+'교육지원청'}));
+  sel.value = cur;
+  sel.addEventListener('change', ()=>{
+    state.settings.region = sel.value;
+    refreshAppointPending();
+    commit();
+    const I = state.incoming;
+    toast(I && I.region!==sel.value ? `지역을 ${sel.value}(으)로 바꿨습니다. 발령 명단은 PDF를 다시 올려야 바뀝니다.` : `지역: ${sel.value}교육지원청`);
+  });
+  box.append(h('div',{class:'region-row'}, h('b',{text:'우리 지역'}), sel,
+    h('span',{class:'note', text:'이 교육지원청으로 발령난 교사를 배치 탭 충원 칸에서 골라 넣습니다.'})));
+}
 function renderAppointCard(){
   const box = $('appointResult'); if(!box) return; box.replaceChildren();
   const P = appointPending, M = state.appointMeta;
+  renderRegionRow(box);
   if(P && P.loading){ box.append(h('div',{class:'msgs'}, h('div',{class:'m info', text:`${P.fileName} 읽는 중… (쪽수가 많으면 몇 초 걸립니다)`}))); return; }
   if(P && P.error){
     box.append(h('div',{class:'msgs'}, h('div',{class:'m err', text:P.error})),
@@ -1451,14 +1583,28 @@ function renderAppointCard(){
     for(const {p, ap} of P.res){ c[ap.st]++; if(ap.st==='ok') offices[ap.office] = (offices[ap.office]||0)+1; const s = ap.st!=='ok'; if(s && !p.struck) toStrike++; if(!s && p.struck) toOpen++; }
     const ms = h('div',{class:'msgs'});
     ms.append(h('div',{class:'m info', text:`미리보기 — ${P.fileName} · ${P.pages}쪽 · 명단 ${P.total}줄 인식 (${Object.entries(P.bySec).map(([k,v])=>`${k} ${v}`).join(', ')})`}));
-    ms.append(h('div',{class:'m ok', text:`관외(청간)전출 내신자 ${P.res.length}명 중 발령 확인 ${c.ok}명`}));
+    const inc = P.incoming || [];
+    if(inc.length){
+      const noSj = inc.filter(p=>!incomingSubj(p));
+      ms.append(h('div',{class:'m ok', text:`${P.region}교육지원청 발령 ${inc.length}명 (${incomingSummaryText(inc)}) → 배치 탭 충원 칸을 눌러 골라 넣습니다. 수석교사 ${inc.filter(p=>p.su).length}명은 (수)가 자동으로 붙습니다.`}));
+      if(noSj.length){
+        const cnt = {}; for(const p of noSj) cnt[p.subjRaw] = (cnt[p.subjRaw]||0)+1;
+        ms.append(h('div',{class:'m warn', text:`교과 이름을 연결하지 못한 ${noSj.length}명: ${Object.entries(cnt).map(([k,v])=>`${k}(${v})`).join(', ')} — 충원 칸 팝업의 「교과 연결 안 됨」에서 넣을 수 있습니다.`}));
+      }
+      const prevN = state.incoming ? state.incoming.people.length : 0;
+      if(prevN){ const keep = inc.filter(p=>state.incoming.people.some(q=>q.id===p.id)).length; ms.append(h('div',{class:'m info', text:`이전에 올린 발령 명단 ${prevN}명 중 ${keep}명은 같은 사람으로 이어집니다 (이미 넣은 배치 유지).`})); }
+    } else {
+      ms.append(h('div',{class:'m warn', text:`${P.region}교육지원청으로 발령난 사람을 찾지 못했습니다. 위에서 지역을 확인하세요.`}));
+    }
+    if(!P.res.length) ms.append(h('div',{class:'m info', text: state.rosters.out ? '관외(청간)전출 명부에 사람이 없습니다.' : '관외(청간)전출 명부를 올리면 관외전출 발령 여부도 함께 확인합니다.'}));
+    else ms.append(h('div',{class:'m ok', text:`관외(청간)전출 내신자 ${P.res.length}명 중 발령 확인 ${c.ok}명`}));
     if(c.none) ms.append(h('div',{class:'m warn', text:`발령 명단에 없음 ${c.none}명 → 미발령(줄긋기) 처리`}));
     if(c.home) ms.append(h('div',{class:'m warn', text:`관내(같은 교육지원청)로 발령 ${c.home}명 → 관외전출이 아니므로 미발령 처리`}));
     if(c.other){
       const names = P.res.filter(x=>x.ap.st==='other').map(x=>`${maskName(x.p.name)}(${x.ap.sec})`);
       ms.append(h('div',{class:'m warn', text:`타시도전출 등 다른 명단에 있는 ${c.other}명: ${names.slice(0,6).join(', ')}${names.length>6?' …':''} → 관외전출에서는 미발령 처리. 필요하면 결원 「타시도전출·파견」에 입력하세요.`}));
     }
-    ms.append(h('div',{class:'m info', text:`적용하면 바뀜: 미발령으로 ${toStrike}명, 발령으로 ${toOpen}명`}));
+    if(P.res.length) ms.append(h('div',{class:'m info', text:`적용하면 바뀜: 미발령으로 ${toStrike}명, 발령으로 ${toOpen}명`}));
     const top = Object.entries(offices).sort((a,b)=>b[1]-a[1]);
     if(top.length) ms.append(h('div',{class:'m info', text:'발령 교육지원청: ' + top.map(([o,n])=>`${shortOffice(o)} ${n}`).join(' · ')}));
     box.append(ms, h('div',{class:'pv-actions'},
@@ -1466,8 +1612,16 @@ function renderAppointCard(){
       h('button',{class:'btn primary', type:'button', text:'이 결과로 적용', onclick:applyAppoint})));
     return;
   }
-  if(M) box.append(h('div',{class:'msgs'}, h('div',{class:'m ok', text:`반영됨: ${M.fileName} (${M.loadedAt}) · 발령 ${M.ok}명 · 미발령 처리 ${M.none}명`})));
-  else box.append(h('div',{class:'msgs'}, h('div',{class:'m info', text: state.rosters.out ? '인사발령 PDF를 올리면 관외전출 내신자의 발령 여부를 확인합니다.' : '관외(청간)전출 명부를 먼저 올리세요.'})));
+  const ms = h('div',{class:'msgs'}); box.append(ms);
+  if(M && M.matched!==false) ms.append(h('div',{class:'m ok', text:`반영됨: ${M.fileName} (${M.loadedAt}) · 관외전출 발령 ${M.ok}명 · 미발령 처리 ${M.none}명`}));
+  const I = state.incoming, S = incomingStats();
+  if(I){
+    ms.append(h('div',{class:'m ok', text:`${I.region}교육지원청 발령 ${S.total}명 (${incomingSummaryText(I.people)}) · 충원에 배치 ${S.placed}명 · 남음 ${S.total-S.placed}명`}));
+    if(I.region!==homeRegion()) ms.append(h('div',{class:'m warn', text:`지금 지역은 ${homeRegion()}입니다. 이 발령 명단은 ${I.region} 기준이니 PDF를 다시 올리세요.`}));
+    if(S.noSj) ms.append(h('div',{class:'m warn', text:`교과 이름을 연결하지 못한 ${S.noSj}명 — 충원 칸 팝업의 「교과 연결 안 됨」에서 넣을 수 있습니다.`}));
+    if(S.orphan) ms.append(h('div',{class:'m warn', text:`충원에 넣어 둔 발령자 중 ${S.orphan}명은 지금 발령 명단에 없습니다 (점검 탭에서 확인).`}));
+  }
+  if(!M && !I) ms.append(h('div',{class:'m info', text:'인사발령 PDF를 올리면 우리 지역으로 발령난 교사 명단을 만들고, 관외(청간)전출 명부가 있으면 발령 여부도 확인합니다.'}));
 }
 
 /* ════════════════════ 엑셀 읽기 (격리된 작업 공간) ════════════════════ */
@@ -1794,6 +1948,15 @@ function renderMainSide(){
     h('span',{class:'k',text:'차이 (결원−충원)'}), h('span',{class:'v big', style: acc.diff>0?'color:#9a6b00':acc.diff<0?'color:var(--neg)':'color:var(--ok)', text:fmtNum(acc.diff)}),
     h('span',{class:'k',text:'관내내신'}), h('span',{class:'v',text:`${acc.cols.in.n}명`+(acc.cols.in.all>acc.cols.in.n?` (미발령 ${acc.cols.in.all-acc.cols.in.n})`:'')}),
     h('span',{class:'k',text:'관외전출'}), h('span',{class:'v',text:`${acc.cols.out.n}명`+(acc.cols.out.all>acc.cols.out.n?` (미발령 ${acc.cols.out.all-acc.cols.out.n})`:'')}))));
+  if(state.incoming){
+    // 선택한 교과의 우리 지역 발령자 배치 현황
+    const subs = new Set(selectedSubjects()), ap = apIndex();
+    const ps = state.incoming.people.filter(p=>subs.has(incomingSubj(p)));
+    const left = ps.filter(p=>!ap.has(p.id)).length;
+    sc.append(h('div',null, h('h4',{text:`인사발령 (${state.incoming.region})`}), h('div',{class:'stats'},
+      h('span',{class:'k',text:'선택 교과 발령자'}), h('span',{class:'v',text:`${ps.length}명`}),
+      h('span',{class:'k',text:'아직 배치 안 함'}), h('span',{class:'v', style: left?'color:#9a6b00':'color:var(--ok)', text:`${left}명`}))));
+  }
 
   // 보기
   const c1 = h('input',{type:'checkbox'}); c1.checked = ui.plNonEmpty; c1.addEventListener('change',()=>{ ui.plNonEmpty=c1.checked; renderView(); });
@@ -2008,6 +2171,13 @@ function entCell(sj, school, col, cv){
       const tag = entryTag(col, en), full = entryLabel(en);
       names.push(en.name + (full?`(${full})`:''));
       if(shown>=MAX_CHIPS) continue; shown++;
+      if(en.aid){
+        const ap = incomingById(en.aid);
+        td.append(h('span',{class:'chip gain appt'+(ap?'':' orphan'), title:[full, incomingTip(ap), '누르면 발령 명단으로 되돌리기'].filter(Boolean).join('\n'),
+          onclick:e=>{ e.stopPropagation(); unplaceIncoming(sj, school, col.k, en); }},
+          maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
+        continue;
+      }
       const tip = [full, en.from ? `관내내신 · 원소속 ${en.from}${en.rank?` · ${en.rank}지망`:''}` : ''].filter(Boolean).join(' · ');
       td.append(h('span',{class:'chip '+(isLossCol(col)?'loss':'gain')+(col.kind==='roster'?' added':'')+(en.from?' linked':''),
         title: tip || null}, maskName(en.name), tag ? h('span',{class:'t', text:`(${tag})`}) : null));
@@ -2024,7 +2194,7 @@ const lastCat = {};
 function popKey(){ return POP ? `${POP.sj}|${POP.school}|${POP.k}` : ''; }
 function openPop(sj, school, k){
   if(popKey()===`${sj}|${school}|${k}`) return;
-  POP = {sj, school, k};
+  POP = {sj, school, k}; apFilter.q = '';
   renderView(); renderPop(true);
 }
 function closePop(){ if(!POP) return; POP = null; $('pop').classList.add('hidden'); renderView(); }
@@ -2044,6 +2214,43 @@ function positionPop(){
   let left = r.left; if(left + pw > W - 8) left = Math.max(8, r.right - pw);
   let top = r.bottom + 4; if(top + ph > H - 8) top = Math.max(8, r.top - ph - 4);
   el.style.left = left + 'px'; el.style.top = top + 'px';
+}
+/* 충원 칸 팝업: 우리 지역 발령자 중 이 교과·아직 배치 안 된 사람 목록 → 누르면 이 칸에 들어감 */
+const apFilter = {q:''};
+function renderIncomingPick(body, sj, school, k){
+  const I = state.incoming, ap = apIndex(), col = COL_BY_K[k];
+  const free = I.people.filter(p=>!ap.has(p.id));
+  const mine = free.filter(p=>p.col===k && incomingSubj(p)===sj);
+  const others = free.filter(p=>p.col!==k && incomingSubj(p)===sj);
+  const noSj = free.filter(p=>!incomingSubj(p));
+  const placedHere = I.people.filter(p=>p.col===k && incomingSubj(p)===sj && ap.has(p.id)).length;
+  const sec = h('div',{class:'ap-box'}); body.append(sec);
+  sec.append(h('div',{class:'pop-sec ap-head'}, `인사발령 ${I.region} · ${sj} ${col.label} — 배치 가능 ${mine.length}명`,
+    placedHere ? h('span',{class:'ap-done', text:` (배치 끝 ${placedHere}명)`}) : null));
+  const q = apFilter.q.trim();
+  let filt = null;
+  if(mine.length + others.length > 8){
+    filt = h('input',{type:'text', class:'ap-filter', placeholder:'이름·전임지로 찾기', value:apFilter.q, 'aria-label':'발령자 찾기'});
+    filt.addEventListener('input', ()=>{ apFilter.q = filt.value; const pos = filt.selectionStart; renderPop(); const f = document.querySelector('#pop .ap-filter'); if(f){ f.focus(); f.setSelectionRange(pos,pos); } });
+    sec.append(filt);
+  }
+  const hit = p => !q || p.name.includes(q) || p.old.includes(q);
+  const pickRow = (p, extra)=>h('button',{type:'button', class:'ap-pick', title:`${incomingTip(p)}\n누르면 ${school} 「${col.label}」에 넣기`, onclick:()=>{ apFilter.q=''; placeIncoming(p, sj, school, k); }},
+    h('span',{class:'nm', text:maskName(p.name)}), p.su ? h('span',{class:'su', text:'수석'}) : null,
+    h('span',{class:'ap-meta', text:[extra, p.old].filter(Boolean).join(' · ')}), h('span',{class:'go', text:'넣기'}));
+  const list = mine.filter(hit);
+  if(!mine.length) sec.append(h('div',{class:'pop-empty', text: placedHere ? '이 교과의 발령자는 모두 배치했습니다.' : `이 교과로 ${col.label} 발령난 사람이 없습니다.`}));
+  else if(!list.length) sec.append(h('div',{class:'pop-empty', text:'찾는 사람이 없습니다.'}));
+  for(const p of list) sec.append(pickRow(p, ''));
+  const more = (title, arr, extraOf)=>{
+    const a = arr.filter(hit); if(!a.length) return;
+    const d = h('details',{class:'ap-more'}); if(q) d.open = true;
+    d.append(h('summary',{text:`${title} ${a.length}명`}));
+    for(const p of a) d.append(pickRow(p, extraOf(p)));
+    sec.append(d);
+  };
+  more('같은 교과 · 다른 구분 발령자', others, p=>COL_BY_K[p.col] ? COL_BY_K[p.col].label : secShort(p.sec));
+  more('교과 연결 안 됨', noSj, p=>`${p.subjRaw} · ${secShort(p.sec)}`);
 }
 function renderPop(focusAdd){
   const el = $('pop');
@@ -2124,9 +2331,11 @@ function renderPop(focusAdd){
     }
     const removeEntry = id => { setEntries(sj, school, k, getEntries(sj, school, k).filter(x=>x.id!==id)); afterEdit(false); };
     const entries = getEntries(sj, school, k);
-    if(!entries.length && col.kind!=='roster') body.append(h('div',{class:'pop-empty', text:'입력된 사람이 없습니다. 아래에서 추가하세요.'}));
+    const apOn = !loss && col.kind==='names' && k!=='gLocal' && state.incoming && state.incoming.people.length;
+    if(apOn && entries.length) body.append(h('div',{class:'pop-sec', text:`이 칸에 넣은 사람 ${entries.length}명 · 왼쪽에서 특이사항(초빙·수석교사·기타) 선택 · 이름을 누르면 되돌리기`}));
+    if(!entries.length && col.kind!=='roster') body.append(h('div',{class:'pop-empty', text: apOn ? '입력된 사람이 없습니다. 아래 발령 명단에서 고르거나 직접 추가하세요.' : '입력된 사람이 없습니다. 아래에서 추가하세요.'}));
     for(const en of entries){
-      const row = h('div',{class:'pop-row'});
+      const row = h('div',{class:'pop-row'+(en.aid?' appt':'')});
       if(col.cats){
         const s = catSelect(col, en.cat);
         s.addEventListener('change', ()=>{ en.cat = s.value; if(en.cat!=='기타') delete en.note; afterEdit(false); });
@@ -2138,12 +2347,22 @@ function renderPop(focusAdd){
           row.append(note);
         }
       }
+      if(en.aid){
+        // 인사발령에서 고른 사람: 이름은 고정, 특이사항(초빙·수석·기타)만 고침. 이름을 누르거나 「되돌리기」로 발령 명단에 돌려보냄
+        const ap = incomingById(en.aid);
+        row.append(h('button',{type:'button', class:'ap-name'+(ap?'':' orphan'), title:incomingTip(ap)+'\n누르면 발령 명단으로 되돌리기', onclick:()=>unplaceIncoming(sj, school, k, en)},
+            h('span',{class:'nm', text:maskName(en.name)}), h('span',{class:'ap-meta', text: ap ? `${secShort(ap.sec)} · ${ap.old}` : '발령 명단에 없음'})),
+          h('button',{type:'button', class:'btn sm', text:'되돌리기', onclick:()=>unplaceIncoming(sj, school, k, en)}));
+        body.append(row);
+        continue;
+      }
       const inp = h('input',{type:'text', value:en.name, 'aria-label':'성명'});
       inp.addEventListener('change', ()=>{ const v = inp.value.trim(); if(!v){ removeEntry(en.id); return; } en.name = v; afterEdit(false); });
       inp.addEventListener('keydown', e=>{ if(e.key==='Enter') inp.blur(); });
       row.append(inp, h('button',{type:'button', class:'del', text:'삭제', onclick:()=>removeEntry(en.id)}));
       body.append(row);
     }
+    if(apOn) renderIncomingPick(body, sj, school, k);
     // 추가 줄
     const add = h('div',{class:'pop-add'});
     let catSel = null;
@@ -2735,6 +2954,14 @@ function renderCheckContent(){
   const badUn = [];
   for(const s of state.schools) for(const sj of state.subjects){ const t=getCount(sj,s.name,'gTemp'), u=getCount(sj,s.name,'gTempUn'); if(u>t) badUn.push({sj, name:s.name, info:`강사 ${t} < 미배치 ${u}`}); }
   items.push(card('미배치 ≤ 강사 합계', !badUn.length, '이상 없음', nameList(badUn)));
+  if(state.incoming){
+    const I = state.incoming, ap = apIndex(), ids = new Set(I.people.map(p=>p.id));
+    const notAp = I.people.filter(p=>!ap.has(p.id)).map(p=>({sj: incomingSubj(p) || p.subjRaw, name:p.name, info:`${secShort(p.sec)} · 전임지 ${p.old}`}));
+    items.push(card(`인사발령(${I.region}) 발령자가 모두 충원에 배치됨`, !notAp.length, `${I.people.length}명 모두 배치`, nameList(notAp)));
+    const orphan = [];
+    for(const [aid, at] of ap) if(!ids.has(aid)) orphan.push({sj:at.sj, name:at.en.name, info:`${at.sc} ${COL_BY_K[at.k] ? COL_BY_K[at.k].label : ''} — 지금 발령 명단에 없음`});
+    if(orphan.length) items.push(card('충원에 넣은 발령자가 지금 발령 명단에 있음', false, '', nameList(orphan)));
+  }
   const idx = rosterIndex(); const un = idx.unmatched.in.length + idx.unmatched.out.length;
   items.push(card('명부 인원이 모두 학교·교과에 연결됨', !un, '모두 연결', h('div',{class:'chk-body', text:`연결되지 않은 ${un}명 — 관리자 화면에서 연결하세요.`})));
   wrap.append(h('div',{class:'chk-list'}, ...items));
@@ -2866,7 +3093,7 @@ function syncAdminLocks(){
   $('cardRosterIn').classList.toggle('locked', !state.schools.length);
   $('cardRosterOut').classList.toggle('locked', !state.schools.length);
   $('cardClasses').classList.toggle('locked', !state.schools.length);
-  $('cardAppoint').classList.toggle('locked', !state.rosters.out);
+  $('cardAppoint').classList.toggle('locked', !state.schools.length);
 }
 function readDateInputs(){
   const y=+$('dY').value, m=+$('dM').value, d=+$('dD').value;
